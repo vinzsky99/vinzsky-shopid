@@ -1,716 +1,1446 @@
 // @ts-nocheck
 /* eslint-disable */
 'use client'
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Autoplay, EffectFade } from 'swiper/modules'
 import 'swiper/css'; import 'swiper/css/effect-fade'
-import { Star, Search, ShoppingCart, Bell, MoreVertical, History, Key, X, Plus, ShieldCheck, CreditCard, QrCode, Upload, Send, CheckCircle, Download, FileText, Clock, Printer, HardDrive, Trash2, Phone, UserCircle, MessageCircle, Quote, Flame, Users, Timer, Copy, Lock, Crown, PlayCircle, Percent, Droplets, Check } from 'lucide-react'
+import {
+  Star, Search, ShoppingCart, Bell, MoreVertical, History, Key, X, Plus,
+  ShieldCheck, Upload, Send, CheckCircle, Download, FileText, Clock, Printer,
+  HardDrive, Trash2, Phone, UserCircle, Quote, Flame, Users, Copy, Crown,
+  Percent, Droplets, HeartHandshake, Landmark, Wallet, Mail, Maximize2,
+  Eye, TrendingUp
+} from 'lucide-react'
+import { createClient } from '@supabase/supabase-js'
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+/* ─────────────────────────────────────────────────────────────
+   TIER CONFIG
+───────────────────────────────────────────────────────────── */
 const DURATIONS = [
-  { label: 'Trial 1 Jam', code: '1H', multiplier: 0, priceText: 'GRATIS' },
-  { label: '7 Hari', code: '7D', multiplier: 0.3, priceText: '30% Harga' },
-  { label: '14 Hari', code: '14D', multiplier: 0.6, priceText: '60% Harga' },
-  { label: '30 Hari', code: '30D', multiplier: 1, priceText: 'Harga Normal' }
+  { label: 'Trial 1 Jam', code: '1H',  multiplier: 0,   color: 'text-[#cd7f32]', bg: 'bg-[#cd7f32]/20', border: 'border-[#cd7f32]/50', tierName: 'Bronze' },
+  { label: '7 Hari',      code: '7D',  multiplier: 0.3, color: 'text-slate-300',  bg: 'bg-slate-300/20',  border: 'border-slate-300/50',  tierName: 'Silver' },
+  { label: '14 Hari',     code: '14D', multiplier: 0.6, color: 'text-yellow-400', bg: 'bg-yellow-400/20', border: 'border-yellow-400/50', tierName: 'Gold'   },
+  { label: '30 Hari',     code: '30D', multiplier: 1,   color: 'text-rose-500',   bg: 'bg-rose-500/20',   border: 'border-rose-500/50',   tierName: 'Ruby'   },
 ]
 
-const playPop = () => { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(400, ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.1); gain.gain.setValueAtTime(1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.1); } catch(e) {} }
-const playKaChing = () => { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const playBeep = (freq, time, dur) => { const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type = 'square'; osc.frequency.setValueAtTime(freq, ctx.currentTime + time); gain.gain.setValueAtTime(0.3, ctx.currentTime + time); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + time + dur); osc.start(ctx.currentTime + time); osc.stop(ctx.currentTime + time + dur); }; playBeep(1200, 0, 0.1); playBeep(1600, 0.15, 0.3); } catch(e) {} }
+/* ─────────────────────────────────────────────────────────────
+   AUDIO HELPERS
+───────────────────────────────────────────────────────────── */
+const playPop = () => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const osc = ctx.createOscillator(); const gain = ctx.createGain()
+    osc.connect(gain); gain.connect(ctx.destination)
+    osc.type = 'sine'; osc.frequency.setValueAtTime(400, ctx.currentTime)
+    osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.1)
+    gain.gain.setValueAtTime(1, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1)
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.1)
+  } catch (e) {}
+}
+const playKaChing = () => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const beep = (f, t, d) => {
+      const o = ctx.createOscillator(); const g = ctx.createGain()
+      o.connect(g); g.connect(ctx.destination); o.type = 'square'
+      o.frequency.setValueAtTime(f, ctx.currentTime + t)
+      g.gain.setValueAtTime(0.3, ctx.currentTime + t)
+      g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + t + d)
+      o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + d)
+    }
+    beep(1200, 0, 0.1); beep(1600, 0.15, 0.3)
+  } catch (e) {}
+}
 
+/* ─────────────────────────────────────────────────────────────
+   FINGERPRINT
+───────────────────────────────────────────────────────────── */
+const generateFingerprint = () => {
+  if (typeof window === 'undefined') return 'unknown_device'
+  const { userAgent, language, hardwareConcurrency, deviceMemory } = window.navigator
+  const { colorDepth, width, height } = window.screen
+  const data = [userAgent, language, colorDepth, `${width}x${height}`, hardwareConcurrency, deviceMemory].join('|')
+  let hash = 0
+  for (let i = 0; i < data.length; i++) { hash = ((hash << 5) - hash) + data.charCodeAt(i); hash = hash & hash }
+  return 'FING-' + Math.abs(hash).toString(16)
+}
+
+/* ─────────────────────────────────────────────────────────────
+   FORMAT DATE REALTIME
+───────────────────────────────────────────────────────────── */
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return new Date().toLocaleString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' })
+  const d = new Date(dateStr)
+  return d.toLocaleString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' })
+}
+
+/* ─────────────────────────────────────────────────────────────
+   GLOBAL STYLES
+───────────────────────────────────────────────────────────── */
+const GS = () => (
+  <style>{`
+    html, body { overflow-x: hidden; }
+    body.modal-open { overflow: hidden !important; }
+
+    .mscroll {
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(59,130,246,.4) transparent;
+    }
+    .mscroll::-webkit-scrollbar { width: 3px; }
+    .mscroll::-webkit-scrollbar-thumb { background: rgba(59,130,246,.4); border-radius: 99px; }
+
+    .m-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center; padding: 1rem;
+      background: rgba(0,4,18,.85);
+      backdrop-filter: blur(18px) saturate(140%);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      overflow: hidden;
+    }
+    .m-box {
+      position: relative; width: 100%; max-height: 92vh;
+      overflow: hidden; display: flex; flex-direction: column;
+    }
+
+    .glass-nav {
+      background: rgba(3,7,20,.72) !important;
+      backdrop-filter: blur(32px) saturate(200%) !important;
+      -webkit-backdrop-filter: blur(32px) saturate(200%) !important;
+    }
+
+    /* ── FOMO animations ── */
+    @keyframes fomoIn  { from { opacity:0; transform:translateX(-60px) scale(.9); } to { opacity:1; transform:translateX(0) scale(1); } }
+    @keyframes fomoOut { from { opacity:1; transform:translateX(0) scale(1); }     to { opacity:0; transform:translateX(-60px) scale(.9); } }
+    .fomo-in  { animation: fomoIn  .5s cubic-bezier(.34,1.56,.64,1) forwards; }
+    .fomo-out { animation: fomoOut .4s ease forwards; }
+
+    /* ── Purchase success popup ── */
+    @keyframes purchaseIn  { from { opacity:0; transform:translateX(-80px) scale(.85); } to { opacity:1; transform:translateX(0) scale(1); } }
+    @keyframes purchaseOut { from { opacity:1; transform:translateX(0) scale(1); }       to { opacity:0; transform:translateX(-80px) scale(.85); } }
+    .purchase-in  { animation: purchaseIn  .55s cubic-bezier(.34,1.56,.64,1) forwards; }
+    .purchase-out { animation: purchaseOut .45s ease forwards; }
+
+    .reveal { transition: opacity 1s, transform 1s; }
+
+    .inp {
+      width:100%; padding:.95rem 1rem .95rem 2.8rem; border-radius:1rem;
+      background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.09);
+      outline:none; font-weight:700; font-size:.82rem; color:#fff;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .inp:focus { border-color:rgba(59,130,246,.7); box-shadow:0 0 0 3px rgba(59,130,246,.15); }
+
+    /* ── NEON HOVER GLOW — SHARP & VIVID ── */
+    .neon-card {
+      transition: transform .35s, box-shadow .35s, border-color .35s;
+      border: 1px solid rgba(255,255,255,.06);
+    }
+    .neon-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(59,130,246,.6) !important;
+      box-shadow:
+        0 0 12px rgba(59,130,246,.5),
+        0 0 28px rgba(59,130,246,.35),
+        0 0 55px rgba(59,130,246,.18),
+        0 20px 40px rgba(0,0,0,.5) !important;
+    }
+
+    /* ── FIRE BAR ── */
+    @keyframes fireFlicker {
+      0%,100% { opacity:1; filter: brightness(1) saturate(1.2); }
+      25%      { opacity:.85; filter: brightness(1.4) saturate(1.5); }
+      50%      { opacity:.95; filter: brightness(1.6) saturate(1.8) hue-rotate(5deg); }
+      75%      { opacity:.8;  filter: brightness(1.3) saturate(1.4); }
+    }
+    @keyframes fireSweep {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .fire-bar {
+      background: linear-gradient(90deg,#ff3d00,#ff6a00,#ff9500,#ffcc00,#ff6a00,#ff3d00);
+      background-size: 300% 100%;
+      animation: fireSweep 1.8s ease infinite, fireFlicker .6s ease-in-out infinite;
+      box-shadow: 0 0 8px #ff6a00, 0 0 18px #ff9500, 0 0 32px rgba(255,100,0,.6);
+    }
+    .fire-price {
+      text-shadow: 0 0 10px rgba(59,130,246,.9), 0 0 22px rgba(59,130,246,.6), 0 0 40px rgba(59,130,246,.3);
+    }
+    .fire-discount {
+      text-shadow: 0 0 8px rgba(168,85,247,.9), 0 0 18px rgba(168,85,247,.5);
+    }
+
+    /* ── Video fullscreen overlay ── */
+    .video-fullscreen-overlay {
+      position: fixed; inset: 0; z-index: 99999;
+      background: rgba(0,0,0,.97);
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── Product modal media panel ── */
+    .media-panel-fill { position: relative; overflow: hidden; background: #000; }
+    .media-panel-fill video, .media-panel-fill img { width:100%; height:100%; object-fit:cover; display:block; }
+
+    /* ── Cart/Buy buttons ── */
+    .btn-cart {
+      flex:1; font-weight:800; padding:1rem; border-radius:1rem;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      transition: all .25s;
+      background: linear-gradient(135deg,rgba(234,179,8,.22),rgba(249,115,22,.18));
+      border: 1.5px solid rgba(234,179,8,.55);
+      color: #fde68a;
+      box-shadow: 0 0 12px rgba(234,179,8,.15);
+    }
+    .btn-cart:hover {
+      background: linear-gradient(135deg,rgba(234,179,8,.38),rgba(249,115,22,.28));
+      transform: scale(1.04);
+      box-shadow: 0 0 20px rgba(234,179,8,.5), 0 0 40px rgba(249,115,22,.25);
+    }
+    .btn-buy {
+      flex:1; font-weight:800; padding:1rem; border-radius:1rem;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      background: linear-gradient(135deg,#1d4ed8,#4f46e5);
+      color:#fff; transition: all .25s;
+      box-shadow: 0 0 14px rgba(37,99,235,.5), 0 0 28px rgba(79,70,229,.3);
+    }
+    .btn-buy:hover {
+      background: linear-gradient(135deg,#1e40af,#3730a3);
+      transform: scale(1.04);
+      box-shadow: 0 0 22px rgba(37,99,235,.7), 0 0 44px rgba(79,70,229,.4);
+    }
+
+    /* ── Exit discount popup ── */
+    @keyframes exitPop { from { opacity:0; transform:scale(.8) translateY(30px); } to { opacity:1; transform:scale(1) translateY(0); } }
+    .exit-pop { animation: exitPop .5s cubic-bezier(.34,1.56,.64,1) forwards; }
+
+    /* ── Visit counter pulse ── */
+    @keyframes visitorPulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.7;transform:scale(1.05);} }
+    .visitor-pulse { animation: visitorPulse 2s ease infinite; }
+
+    /* ── Shooting stars ── many more ── */
+    @keyframes shootStar {
+      0%   { opacity:1; transform:translateX(0) translateY(0) scaleX(1); }
+      100% { opacity:0; transform:translateX(320px) translateY(320px) scaleX(6); }
+    }
+  `}</style>
+)
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+═══════════════════════════════════════════════════════════════ */
 export default function Home() {
-  const [cart, setCart] = useState([])
-  const [selectedProduct, setSelectedProduct] = useState(null)
+  const [cart, setCart]                         = useState([])
+  const [selectedProduct, setSelectedProduct]   = useState(null)
   const [selectedDuration, setSelectedDuration] = useState(DURATIONS[3])
-  const [showCheckout, setShowCheckout] = useState(false)
-  const [payMethod, setPayMethod] = useState('qris')
-  const [buktiBayar, setBuktiBayar] = useState(null)
-  const [customerName, setCustomerName] = useState('')
-  const [customerWA, setCustomerWA] = useState('')
-  const [isSending, setIsSending] = useState(false)
-  const [showReceipt, setShowReceipt] = useState(null)
-  const [activeMenu, setActiveMenu] = useState(null) 
-  const [historyData, setHistoryData] = useState([])
-  const [notifications, setNotifications] = useState([])
-  const [showNotif, setShowNotif] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('') 
-  const canvasRef = useRef(null)
-  const receiptCanvasRef = useRef(null)
-
+  const [showCheckout, setShowCheckout]         = useState(false)
+  const [payMethod, setPayMethod]               = useState('midtrans')
+  const [buktiBayar, setBuktiBayar]             = useState(null)
+  const [customerName, setCustomerName]         = useState('')
+  const [customerWA, setCustomerWA]             = useState('')
+  const [customerEmail, setCustomerEmail]       = useState('')
+  const [isSending, setIsSending]               = useState(false)
+  const [showReceipt, setShowReceipt]           = useState(null)
+  const [activeMenu, setActiveMenu]             = useState(null)
+  const [historyData, setHistoryData]           = useState([])
+  const [notifications, setNotifications]       = useState([])
+  const [showNotif, setShowNotif]               = useState(false)
+  const [unreadCount, setUnreadCount]           = useState(0)
+  const [searchQuery, setSearchQuery]           = useState('')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isChatOpen, setIsChatOpen] = useState(false)
-  const [chatInput, setChatInput] = useState('')
-  const [chatMessages, setChatMessages] = useState([{ sender: 'cs', text: 'Halo Bosku! Ada yang bisa CS VinzSky-shopID bantu hari ini?' }])
-  const [lastUpdateId, setLastUpdateId] = useState(0) 
-  const chatEndRef = useRef(null)
+  const [isChatOpen, setIsChatOpen]             = useState(false)
+  const [chatInput, setChatInput]               = useState('')
+  const [chatMessages, setChatMessages]         = useState([{ sender:'cs', text:'Halo Bosku! Ada yang bisa CS VinzSky-shopID bantu hari ini?' }])
+  const [lastUpdateId, setLastUpdateId]         = useState(0)
+  const [reviewData, setReviewData]             = useState(null)
+  const [rating, setRating]                     = useState(5)
+  const [reviewText, setReviewText]             = useState('')
+  const [timeLeft, setTimeLeft]                 = useState(7200)
+  const [isVipMember, setIsVipMember]           = useState(false)
+  const [vipTierInfo, setVipTierInfo]           = useState(null)
+  const [showExitPopup, setShowExitPopup]       = useState(false)
+  const [hasShownExit, setHasShownExit]         = useState(false)
+  const [hasExitPromo, setHasExitPromo]         = useState(false)
+  const [appOpacity, setAppOpacity]             = useState(100)
+  const [isCheckingTrial, setIsCheckingTrial]   = useState(false)
+  const [allProducts, setAllProducts]           = useState([])
+  const [publicReviews, setPublicReviews]       = useState([])
+  const [isLoadingDB, setIsLoadingDB]           = useState(true)
+  const [dbError, setDbError]                   = useState(null)
+  const [fullscreenVideo, setFullscreenVideo]   = useState(null)
 
-  const [reviewData, setReviewData] = useState(null) 
-  const [rating, setRating] = useState(5)
-  const [reviewText, setReviewText] = useState('')
-  const [publicReviews, setPublicReviews] = useState([
-    { name: "Andi Wijaya", product: "Upscale Video Best Quality 4K", rating: 5, text: "Gila render 4K nya cepet parah! Adminnya juga fast respon banget langsung kasih key di WA. Mantap VinzSky-shopID!" },
-    { name: "Budi Santoso", product: "Tools Adobe Stock V6.2", rating: 5, text: "Fitur auto metadata & market research ngebantu banget jualan di Adobe Stock. Lifetime pula, the best lah!" }
-  ])
+  /* ── FOMO: realtime purchases only (no fake) ── */
+  const [fomoQueue, setFomoQueue]     = useState([])
+  const [activeFomo, setActiveFomo]   = useState(null)
+  const [fomoLeaving, setFomoLeaving] = useState(false)
+  const fomoTimerRef = useRef(null)
 
-  const [timeLeft, setTimeLeft] = useState(7200) 
-  const [fomoNotif, setFomoNotif] = useState(null)
-  const [realPurchases, setRealPurchases] = useState([])
+  /* ── Purchase popup (bottom-left, after real checkout) ── */
+  const [purchasePopups, setPurchasePopups]     = useState([])
+  const [activePurchasePopup, setActivePurchasePopup] = useState(null)
+  const [purchaseLeaving, setPurchaseLeaving]   = useState(false)
+  const purchaseTimerRef = useRef(null)
 
-  const [stocks, setStocks] = useState({ p1: 100, p2: 99, p3: 98 })
-  const [isVipMember, setIsVipMember] = useState(false)
-  const [showExitPopup, setShowExitPopup] = useState(false)
-  const [hasShownExit, setHasShownExit] = useState(false)
-  const [hasExitPromo, setHasExitPromo] = useState(false)
-  const [demoVideo, setDemoVideo] = useState(null)
-  
-  // FIX OPACITY: Sekarang nilai ini benar-benar mengatur transparansi seluruh App Content
-  const [appOpacity, setAppOpacity] = useState(100)
+  /* ── Realtime visitors ── */
+  const [visitorCount, setVisitorCount] = useState(0)
+  const [viewCounts, setViewCounts]     = useState({}) // productId → count
+  const visitorIdRef = useRef(null)
 
-  // DETEKSI MODAL TERBUKA BIAR FAB CHAT NGUMPET
-  const isAnyModalOpen = showCheckout || selectedProduct !== null || activeMenu !== null || showReceipt !== null || reviewData !== null || demoVideo !== null || showExitPopup;
+  const canvasRef        = useRef(null)
+  const receiptCanvasRef = useRef(null)
+  const chatEndRef       = useRef(null)
 
-  const firstNames = ["Budi", "Agus", "Siska", "Reza", "Dina", "Hendra", "Faisal", "Rina", "Tono", "Dewi", "Gilang", "Rafi", "Siti", "Ayu", "Putri", "Rizky", "Fajar"]
-  const cities = ["Jakarta", "Surabaya", "Bandung", "Medan", "Bali", "Makassar", "Semarang", "Palembang", "Yogyakarta", "Malang", "Pekanbaru", "Batam"]
-  const fakeProducts = ["Upscale Video 4K", "Upscale Photos High Quality", "Tools Adobe Stock V6.2", "Bundle VinzSky-shopID AI"]
-  const fakeTimes = [ "2 menit yang lalu", "5 menit yang lalu", "14 menit yang lalu", "32 menit yang lalu", "1 jam yang lalu" ]
+  const isAnyModalOpen = showCheckout || selectedProduct !== null || activeMenu !== null || showReceipt !== null || reviewData !== null || showExitPopup || fullscreenVideo !== null
 
+  /* ── body lock ── */
   useEffect(() => {
-    const stockInterval = setInterval(() => {
-      setStocks(prev => {
-        const drop1 = Math.random() > 0.4 ? Math.floor(Math.random() * 2) + 1 : 0;
-        const drop2 = Math.random() > 0.6 ? Math.floor(Math.random() * 2) + 1 : 0;
-        const drop3 = Math.random() > 0.3 ? Math.floor(Math.random() * 2) + 1 : 0;
-        return { p1: Math.max(75, prev.p1 - drop1), p2: Math.max(60, prev.p2 - drop2), p3: Math.max(50, prev.p3 - drop3) }
-      });
-    }, 12000); 
-    return () => clearInterval(stockInterval);
-  }, []);
+    document.body.classList.toggle('modal-open', isAnyModalOpen)
+    return () => document.body.classList.remove('modal-open')
+  }, [isAnyModalOpen])
 
+  /* ── fomo queue (realtime only) ── */
   useEffect(() => {
-    const handleMouseLeave = (e) => { if (e.clientY <= 0 && !hasShownExit && !isAnyModalOpen) { setShowExitPopup(true); setHasShownExit(true); } };
-    document.addEventListener("mouseleave", handleMouseLeave); return () => document.removeEventListener("mouseleave", handleMouseLeave);
-  }, [hasShownExit, isAnyModalOpen]);
+    if (!activeFomo && fomoQueue.length > 0 && !isAnyModalOpen) {
+      const [next, ...rest] = fomoQueue
+      setFomoQueue(rest)
+      setActiveFomo(next)
+      setFomoLeaving(false)
+      fomoTimerRef.current = setTimeout(() => {
+        setFomoLeaving(true)
+        setTimeout(() => setActiveFomo(null), 500)
+      }, 5000)
+    }
+    return () => clearTimeout(fomoTimerRef.current)
+  }, [activeFomo, fomoQueue, isAnyModalOpen])
 
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => { entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('opacity-100', 'translate-y-0'); entry.target.classList.remove('opacity-0', 'translate-y-20'); } }); }, { threshold: 0.1 });
-    document.querySelectorAll('.reveal-on-scroll').forEach(el => observer.observe(el)); return () => observer.disconnect();
-  }, [searchQuery, publicReviews, stocks]); 
+  const pushFomo = useCallback((item) => setFomoQueue(q => [...q.slice(-4), item]), [])
 
+  /* ── purchase popup queue ── */
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (!activePurchasePopup && purchasePopups.length > 0 && !isAnyModalOpen) {
+      const [next, ...rest] = purchasePopups
+      setPurchasePopups(rest)
+      setActivePurchasePopup(next)
+      setPurchaseLeaving(false)
+      purchaseTimerRef.current = setTimeout(() => {
+        setPurchaseLeaving(true)
+        setTimeout(() => setActivePurchasePopup(null), 500)
+      }, 5000)
+    }
+    return () => clearTimeout(purchaseTimerRef.current)
+  }, [activePurchasePopup, purchasePopups, isAnyModalOpen])
+
+  const pushPurchasePopup = useCallback((order) => {
+    setPurchasePopups(q => [...q.slice(-3), order])
+  }, [])
+
+  /* ── midtrans script ── */
+  useEffect(() => {
+    const ck = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY
+    const s  = document.createElement('script')
+    s.src = 'https://app.midtrans.com/snap/snap.js'
+    s.setAttribute('data-client-key', ck); s.async = true
+    document.body.appendChild(s)
+    return () => { try { document.body.removeChild(s) } catch (e) {} }
+  }, [])
+
+  /* ── fetch DB ── */
+  useEffect(() => {
+    ;(async () => {
+      setIsLoadingDB(true)
       try {
-        const savedHistory = JSON.parse(localStorage.getItem('vinzsky_history')) || []
-        setHistoryData(savedHistory); if (savedHistory.length > 0) setIsVipMember(true);
-        const extractedReals = savedHistory.map(trx => ({ name: trx.customerName, product: trx.hwidItems[0]?.productName || "AI Tools", time: "Baru saja", isReal: true }));
-        setRealPurchases(extractedReals);
-        const savedReviews = JSON.parse(localStorage.getItem('vinzsky_reviews')) || []
-        if(savedReviews.length > 0) setPublicReviews([...savedReviews, ...publicReviews])
-      } catch (e) { setHistoryData([]) }
-    }
+        const { data: dbP, error: pE } = await supabase.from('products').select('*').order('id', { ascending: true })
+        if (pE) throw pE
+        setAllProducts((dbP || []).map(p => ({
+          id:              p.id || Math.random(),
+          name:            p.name || 'Produk',
+          category:        p.category || 'AI',
+          price:           p.price || 0,
+          originalPrice:   p.originalprice || p.price || 0,
+          stock:           p.stock || 99,
+          isFlashSale:     p.isflashsale || false,
+          image:           p.image || '/produk1.jpg',
+          desc:            p.product_desc || p.desc || p.description || 'Deskripsi eksklusif dari VinzSky-shopID.',
+          zipLink:         (p.ziplink && p.ziplink !== '#' && p.ziplink !== '') ? p.ziplink : null,
+          pdfLink:         (p.pdflink && p.pdflink !== '#' && p.pdflink !== '') ? p.pdflink : null,
+          isLifetime:      p.islifetime || false,
+          videoUrl:        p.videourl || '',
+          discountPersen:    p.discount_persen    ?? 0,
+          discountExit:      p.discount_exit      ?? 10,
+          discountVip:       p.discount_vip       ?? 5,
+          discountFlashsale: p.discount_flashsale ?? 0,
+          discountAktif:     p.discount_aktif     ?? false,
+          discountLabel:     p.discount_label     || '',
+        })))
+
+        const { data: dbR } = await supabase.from('reviews').select('*').order('created_at', { ascending: false })
+        setPublicReviews(dbR || [])
+      } catch (e) { setDbError(e.message) }
+      setIsLoadingDB(false)
+    })()
   }, [])
 
-  useEffect(() => { fetch(`/api/telegram?offset=-1`).then(res => res.json()).then(data => { if (data.ok && data.result.length > 0) setLastUpdateId(data.result[0].update_id + 1) }).catch(() => {}) }, [])
-
+  /* ── VISITOR TRACKING REALTIME ── */
   useEffect(() => {
-    let interval;
-    if (isChatOpen && !isAnyModalOpen) {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/telegram?offset=${lastUpdateId}`); const data = await res.json()
-          if (data.ok && data.result.length > 0) {
-            let latestId = lastUpdateId; const newMessages = [];
-            data.result.forEach(update => { latestId = update.update_id + 1; if (update.message && update.message.text && !update.message.from.is_bot) newMessages.push({ sender: 'cs', text: update.message.text }); });
-            if (newMessages.length > 0) setChatMessages(prev => [...prev, ...newMessages]); setLastUpdateId(latestId);
-          }
-        } catch (error) {}
-      }, 3000); 
-    } return () => clearInterval(interval);
-  }, [isChatOpen, lastUpdateId, isAnyModalOpen]);
+    const trackVisitor = async () => {
+      const fp = generateFingerprint()
+      visitorIdRef.current = fp
+      try {
+        // upsert visitor session (create or update last_seen)
+        await supabase.from('visitors').upsert([{
+          visitor_id: fp,
+          last_seen: new Date().toISOString(),
+          user_agent: navigator.userAgent,
+        }], { onConflict: 'visitor_id' })
 
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [chatMessages, isChatOpen])
-  useEffect(() => { if (notifications.length > 0) { const timer = setTimeout(() => { setShowNotif(false) }, 5000); return () => clearTimeout(timer) } }, [notifications])
-  useEffect(() => { const timer = setInterval(() => { setTimeLeft(prev => (prev <= 0 ? 7200 : prev - 1)) }, 1000); return () => clearInterval(timer) }, [])
-
-  const formatTime = (seconds) => { const h = Math.floor(seconds / 3600); const m = Math.floor((seconds % 3600) / 60); const s = seconds % 60; return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}` }
-
-  // 🔥 FOMO GENERATOR 🔥
-  useEffect(() => {
-    const fomoInterval = setInterval(() => {
-      if (isAnyModalOpen) return; 
-      const showReal = realPurchases.length > 0 && Math.random() > 0.7;
-      if (showReal) {
-         const randomReal = realPurchases[Math.floor(Math.random() * realPurchases.length)];
-         setFomoNotif({ name: randomReal.name, product: randomReal.product, time: "Beberapa saat yang lalu", isReal: true });
-      } else {
-         const rName = firstNames[Math.floor(Math.random() * firstNames.length)]
-         const rCity = cities[Math.floor(Math.random() * cities.length)]
-         const rProduct = fakeProducts[Math.floor(Math.random() * fakeProducts.length)]
-         const rTime = fakeTimes[Math.floor(Math.random() * fakeTimes.length)]
-         setFomoNotif({ name: `${rName} - ${rCity}`, product: rProduct, time: rTime, isReal: false })
-      }
-      setTimeout(() => { setFomoNotif(null) }, 6000) 
-    }, 12000)
-    return () => clearInterval(fomoInterval)
-  }, [isAnyModalOpen, realPurchases])
-
-  // 🌌 ANIMASI GALAXY 🌌
-  useEffect(() => {
-    if (typeof window === 'undefined' || !canvasRef.current) return;
-    const canvas = canvasRef.current; const ctx = canvas.getContext('2d')
-    let w = canvas.width = window.innerWidth; let h = canvas.height = window.innerHeight
-    let particles = []
-    class StarParticle {
-      constructor() { 
-        this.x = Math.random() * w; this.y = Math.random() * h; 
-        this.z = Math.random() * 2 + 0.5; 
-        this.vx = ((Math.random() - 0.5) * 0.2) / this.z; 
-        this.vy = -(Math.random() * 0.4) / this.z; 
-        this.size = (Math.random() * 2) / this.z; 
-        this.alpha = Math.random(); this.alphaChange = (Math.random() * 0.02) - 0.01;
-      }
-      update() {
-        this.x += this.vx; this.y += this.vy; this.alpha += this.alphaChange;
-        if(this.alpha <= 0.1 || this.alpha >= 0.8) this.alphaChange *= -1; 
-        if (this.x > w || this.x < 0) this.x = Math.random() * w;
-        if (this.y < 0) { this.y = h; this.x = Math.random() * w; }
-        ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); 
-        ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`; ctx.fill();
-      }
+        // count active visitors (seen in last 5 min)
+        const since = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+        const { count } = await supabase
+          .from('visitors')
+          .select('*', { count: 'exact', head: true })
+          .gte('last_seen', since)
+        setVisitorCount(count || 1)
+      } catch (e) {}
     }
-    for (let i = 0; i < 60; i++) particles.push(new StarParticle()) 
-    const animate = () => { ctx.clearRect(0, 0, w, h); particles.forEach(p => p.update()); requestAnimationFrame(animate) }
+
+    trackVisitor()
+    const id = setInterval(async () => {
+      try {
+        await supabase.from('visitors').upsert([{ visitor_id: visitorIdRef.current, last_seen: new Date().toISOString() }], { onConflict: 'visitor_id' })
+        const since = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+        const { count } = await supabase.from('visitors').select('*', { count: 'exact', head: true }).gte('last_seen', since)
+        setVisitorCount(count || 1)
+      } catch (e) {}
+    }, 30000)
+
+    return () => clearInterval(id)
+  }, [])
+
+  /* ── PRODUCT VIEW TRACKING REALTIME ── */
+  const trackProductView = useCallback(async (productId) => {
+    try {
+      const fp = generateFingerprint()
+      const since = new Date(Date.now() - 60 * 60 * 1000).toISOString() // unique per 1hr
+      const { data: ex } = await supabase.from('product_views')
+        .select('id').eq('product_id', productId).eq('visitor_id', fp).gte('created_at', since).single()
+      if (!ex) {
+        await supabase.from('product_views').insert([{ product_id: productId, visitor_id: fp }])
+      }
+      const { count } = await supabase.from('product_views').select('*', { count: 'exact', head: true }).eq('product_id', productId)
+      setViewCounts(prev => ({ ...prev, [productId]: count || 0 }))
+    } catch (e) {}
+  }, [])
+
+  /* ── supabase realtime orders → fomo + purchase popup ── */
+  useEffect(() => {
+    const ch = supabase
+      .channel('realtime-orders')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, payload => {
+        const o = payload.new
+        const item = {
+          name:      o.customer_name || 'Pembeli Baru',
+          product:   o.items?.[0]?.name || 'AI Product',
+          createdAt: o.created_at || new Date().toISOString(),
+          isReal:    true,
+        }
+        pushFomo(item)
+        pushPurchasePopup(item)
+        setNotifications(n => [{ time: new Date().toLocaleTimeString(), text: `🛒 ${item.name} baru saja membeli ${item.product}!` }, ...n])
+        setUnreadCount(c => c + 1); setShowNotif(true)
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [pushFomo, pushPurchasePopup])
+
+  /* ── realtime visitor channel ── */
+  useEffect(() => {
+    const ch = supabase
+      .channel('realtime-visitors')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'visitors' }, async () => {
+        const since = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+        const { count } = await supabase.from('visitors').select('*', { count: 'exact', head: true }).gte('last_seen', since)
+        setVisitorCount(count || 1)
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [])
+
+  /* ── exit intent (desktop mouseleave + mobile visibility) ── */
+  useEffect(() => {
+    const onMouseLeave = e => { if (e.clientY <= 0 && !hasShownExit && !isAnyModalOpen) { setShowExitPopup(true); setHasShownExit(true) } }
+    const onVisChange  = () => { if (document.hidden && !hasShownExit && !isAnyModalOpen) { setShowExitPopup(true); setHasShownExit(true) } }
+    document.addEventListener('mouseleave', onMouseLeave)
+    document.addEventListener('visibilitychange', onVisChange)
+    return () => { document.removeEventListener('mouseleave', onMouseLeave); document.removeEventListener('visibilitychange', onVisChange) }
+  }, [hasShownExit, isAnyModalOpen])
+
+  /* ── beforeunload → exit popup ── */
+  useEffect(() => {
+    const onBefore = e => { if (!hasShownExit) { setShowExitPopup(true); setHasShownExit(true) } }
+    window.addEventListener('beforeunload', onBefore)
+    return () => window.removeEventListener('beforeunload', onBefore)
+  }, [hasShownExit])
+
+  /* ── reveal on scroll ── */
+  useEffect(() => {
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('opacity-100','translate-y-0'); e.target.classList.remove('opacity-0','translate-y-20') }
+      })
+    }, { threshold: 0.08 })
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el))
+    return () => obs.disconnect()
+  }, [searchQuery, publicReviews, allProducts, isLoadingDB])
+
+  /* ── history local ── */
+  useEffect(() => {
+    try {
+      const h = JSON.parse(localStorage.getItem('vinzsky_history') || '[]')
+      setHistoryData(h)
+      if (h.length) {
+        setIsVipMember(true)
+        const t = DURATIONS.find(d => d.label === h[0]?.hwidItems?.[0]?.duration) || DURATIONS[3]
+        setVipTierInfo(t)
+      }
+    } catch (e) { setHistoryData([]) }
+  }, [])
+
+  /* ── timers ── */
+  useEffect(() => {
+    const id = setInterval(() => setTimeLeft(p => p <= 0 ? 7200 : p - 1), 1000)
+    return () => clearInterval(id)
+  }, [])
+  useEffect(() => {
+    if (showNotif) { const t = setTimeout(() => setShowNotif(false), 5500); return () => clearTimeout(t) }
+  }, [showNotif, notifications])
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior:'smooth' }) }, [chatMessages, isChatOpen])
+
+  /* ── telegram polling ── */
+  useEffect(() => {
+    fetch('/api/telegram?offset=-1').then(r=>r.json()).then(d => { if (d.ok && d.result.length) setLastUpdateId(d.result[0].update_id+1) }).catch(()=>{})
+  }, [])
+  useEffect(() => {
+    if (!isChatOpen) return
+    const id = setInterval(async () => {
+      try {
+        const d = await (await fetch(`/api/telegram?offset=${lastUpdateId}`)).json()
+        if (d.ok && d.result.length) {
+          let lid = lastUpdateId; const msgs = []
+          d.result.forEach(u => { lid = u.update_id+1; if (u.message?.text && !u.message.from.is_bot) msgs.push({sender:'cs',text:u.message.text}) })
+          if (msgs.length) setChatMessages(p=>[...p,...msgs]); setLastUpdateId(lid)
+        }
+      } catch (e) {}
+    }, 3000)
+    return () => clearInterval(id)
+  }, [isChatOpen, lastUpdateId])
+
+  /* ── GALAXY CANVAS — ENHANCED shooting stars ── */
+  useEffect(() => {
+    if (!canvasRef.current) return
+    const cv = canvasRef.current; const ctx = cv.getContext('2d')
+    let w = cv.width = window.innerWidth; let h = cv.height = window.innerHeight
+    let animId; const shoots = []; let shootT = 0
+
+    const STAR_COUNT = 600 // more stars
+    const stars = Array.from({ length: STAR_COUNT }, () => ({
+      x: Math.random()*w, y: Math.random()*h,
+      r: Math.random()*2.2+.12,
+      a: Math.random()*.85+.08, da: (Math.random()*.014+.003) * (Math.random()>.5?1:-1),
+      col: ['rgba(200,220,255,','rgba(255,245,210,','rgba(180,200,255,','rgba(255,255,255,','rgba(210,230,255,','rgba(255,230,200,'][Math.floor(Math.random()*6)],
+    }))
+
+    const drawNebula = () => {
+      const grd = ctx.createLinearGradient(w*.05,h*.1,w*.95,h*.92)
+      grd.addColorStop(0,'rgba(8,18,60,0)'); grd.addColorStop(.18,'rgba(20,12,55,.15)')
+      grd.addColorStop(.35,'rgba(45,18,90,.25)'); grd.addColorStop(.5,'rgba(18,45,110,.30)')
+      grd.addColorStop(.65,'rgba(55,22,80,.20)'); grd.addColorStop(.82,'rgba(12,30,75,.16)')
+      grd.addColorStop(1,'rgba(5,10,30,0)')
+      ctx.fillStyle = grd; ctx.fillRect(0,0,w,h)
+      ;[[w*.12,h*.28,w*.42,'rgba(25,45,170,.14)','rgba(55,18,130,.09)'],
+        [w*.78,h*.52,w*.36,'rgba(130,18,75,.13)','rgba(70,8,100,.07)'],
+        [w*.3, h*.78,w*.30,'rgba(0,70,120,.12)','rgba(0,45,90,.06)'],
+        [w*.88,h*.85,w*.24,'rgba(120,60,10,.10)','rgba(0,0,0,0)'],
+        [w*.5, h*.2, w*.5, 'rgba(40,10,90,.10)','rgba(0,0,0,0)'],
+      ].forEach(([x,y,r,c0,c1]) => {
+        const n = ctx.createRadialGradient(x,y,0,x,y,r)
+        n.addColorStop(0,c0); n.addColorStop(1,c1)
+        ctx.fillStyle=n; ctx.fillRect(0,0,w,h)
+      })
+    }
+
+    const spawnShoot = () => {
+      shoots.push({
+        x: Math.random()*w*.75, y: Math.random()*h*.35,
+        len: Math.random()*120+50,
+        spd: Math.random()*12+6,
+        a: 1,
+        angle: Math.PI/4 + (Math.random()-.5)*.5,
+        width: Math.random()*1.8+0.8,
+      })
+    }
+
+    const animate = () => {
+      ctx.clearRect(0,0,w,h); drawNebula()
+      stars.forEach(s => {
+        s.a += s.da; if (s.a>.88||s.a<.04) s.da*=-1
+        if (s.r>1.0) {
+          const g = ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,s.r*5.5)
+          g.addColorStop(0,s.col+(s.a*.7)+')'); g.addColorStop(1,'rgba(0,0,0,0)')
+          ctx.fillStyle=g; ctx.fillRect(s.x-s.r*5.5,s.y-s.r*5.5,s.r*11,s.r*11)
+        }
+        ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2)
+        ctx.fillStyle=s.col+s.a+')'; ctx.fill()
+        if (s.r>1.4) {
+          ctx.strokeStyle=s.col+(s.a*.4)+')'; ctx.lineWidth=.6
+          ctx.beginPath(); ctx.moveTo(s.x-s.r*4.5,s.y); ctx.lineTo(s.x+s.r*4.5,s.y)
+          ctx.moveTo(s.x,s.y-s.r*4.5); ctx.lineTo(s.x,s.y+s.r*4.5); ctx.stroke()
+        }
+      })
+      // spawn shooting stars more frequently
+      shootT++
+      if (shootT > 80 && Math.random() > .88) { spawnShoot(); shootT = 0 }
+      if (Math.random() > .995) spawnShoot() // random bonus
+
+      for (let i=shoots.length-1;i>=0;i--) {
+        const sh=shoots[i]
+        ctx.save(); ctx.translate(sh.x,sh.y); ctx.rotate(sh.angle)
+        const sg=ctx.createLinearGradient(0,0,sh.len,0)
+        sg.addColorStop(0,'rgba(255,255,255,0)')
+        sg.addColorStop(.6,`rgba(200,220,255,${sh.a*.6})`)
+        sg.addColorStop(1,`rgba(255,255,255,${sh.a})`)
+        ctx.strokeStyle=sg; ctx.lineWidth=sh.width
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(sh.len,0); ctx.stroke()
+        // glow trail
+        const sg2=ctx.createLinearGradient(0,-3,sh.len,3)
+        sg2.addColorStop(0,'rgba(120,180,255,0)')
+        sg2.addColorStop(1,`rgba(120,180,255,${sh.a*.3})`)
+        ctx.strokeStyle=sg2; ctx.lineWidth=sh.width*3
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(sh.len,0); ctx.stroke()
+        ctx.restore()
+        sh.x+=Math.cos(sh.angle)*sh.spd; sh.y+=Math.sin(sh.angle)*sh.spd; sh.a-=.022
+        if (sh.a<=0) shoots.splice(i,1)
+      }
+      animId = requestAnimationFrame(animate)
+    }
     animate()
+    const resize = () => { w=cv.width=window.innerWidth; h=cv.height=window.innerHeight }
+    window.addEventListener('resize',resize)
+    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize',resize) }
   }, [])
 
+  /* ── confetti ── */
   useEffect(() => {
-    if (showReceipt && receiptCanvasRef.current) {
-      const canvas = receiptCanvasRef.current; const ctx = canvas.getContext('2d'); let w = canvas.width = window.innerWidth; let h = canvas.height = window.innerHeight; let confettis = []; const colors = ['#22c55e', '#3b82f6', '#eab308', '#ec4899', '#ffffff']; 
-      for (let i = 0; i < 150; i++) { confettis.push({ x: Math.random() * w, y: Math.random() * h - h, r: Math.random() * 6 + 2, dx: Math.random() * 4 - 2, dy: Math.random() * 5 + 2, color: colors[Math.floor(Math.random() * colors.length)], tilt: Math.floor(Math.random() * 10) - 10, tiltAngleInc: (Math.random() * 0.07) + 0.05, tiltAngle: 0 }); }
-      const animateConfetti = () => { ctx.clearRect(0, 0, w, h); confettis.forEach(c => { c.tiltAngle += c.tiltAngleInc; c.y += (Math.cos(c.tiltAngle) + 1 + c.r / 2) / 2; c.x += Math.sin(c.tiltAngle) * 2; ctx.beginPath(); ctx.lineWidth = c.r; ctx.strokeStyle = c.color; ctx.moveTo(c.x + c.tilt + c.r, c.y); ctx.lineTo(c.x + c.tilt, c.y + c.tilt + c.r); ctx.stroke(); if (c.y > h) { c.y = -10; c.x = Math.random() * w; } }); requestAnimationFrame(animateConfetti); }
-      animateConfetti();
-    }
+    if (!showReceipt || !receiptCanvasRef.current) return
+    const cv=receiptCanvasRef.current; const ctx=cv.getContext('2d')
+    let w=cv.width=window.innerWidth; let h=cv.height=window.innerHeight
+    const cols=['#22c55e','#3b82f6','#eab308','#ec4899','#fff']
+    const conf=Array.from({length:180},()=>({ x:Math.random()*w, y:Math.random()*h-h, r:Math.random()*6+2, dx:Math.random()*4-2, dy:Math.random()*5+2, color:cols[Math.floor(Math.random()*5)], tilt:Math.floor(Math.random()*10)-10, tai:(Math.random()*.07)+.05, ta:0 }))
+    const run=()=>{ ctx.clearRect(0,0,w,h); conf.forEach(c=>{ c.ta+=c.tai; c.y+=(Math.cos(c.ta)+1+c.r/2)/2; c.x+=Math.sin(c.ta)*2; ctx.beginPath(); ctx.lineWidth=c.r; ctx.strokeStyle=c.color; ctx.moveTo(c.x+c.tilt+c.r,c.y); ctx.lineTo(c.x+c.tilt,c.y+c.tilt+c.r); ctx.stroke(); if(c.y>h){c.y=-10;c.x=Math.random()*w} }); requestAnimationFrame(run) }
+    run()
   }, [showReceipt])
 
-  const handleCloseProductModal = () => { if (!hasExitPromo && !hasShownExit) { setShowExitPopup(true); setHasShownExit(true); } else { setSelectedProduct(null); } }
-  const calculateFinalPrice = (basePrice) => { let final = basePrice; if (hasExitPromo) return final * 0.90; if (isVipMember) return final * 0.95; return final; }
+  /* ─────────────────────────────────────────────────────────
+     HELPERS
+  ───────────────────────────────────────────────────────── */
+  const fmt = s => `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`
+  const safeLink = (url) => url && url !== '#' && url !== '' ? url : null
 
-  const executeAddToCart = (product, duration) => { playPop(); const finalPrice = calculateFinalPrice(product.price) * duration.multiplier; const cartItem = { ...product, finalPrice, durationLabel: duration.label, durationCode: duration.code, cartId: Date.now() }; setCart([...cart, cartItem]); setNotifications([{ time: new Date().toLocaleTimeString(), text: `${product.name} masuk keranjang!` }, ...notifications]); setShowNotif(true); setSelectedProduct(null) }
-  const executeBeliSekarang = (product, duration) => { playPop(); const finalPrice = calculateFinalPrice(product.price) * duration.multiplier; const cartItem = { ...product, finalPrice, durationLabel: duration.label, durationCode: duration.code, cartId: Date.now() }; setCart([...cart, cartItem]); setSelectedProduct(null); setShowCheckout(true) }
-  
-  const removeFromCart = (index) => { const newCart = [...cart]; const removed = newCart.splice(index, 1)[0]; setCart(newCart); if(newCart.length === 0) setShowCheckout(false); setNotifications([{ time: new Date().toLocaleTimeString(), text: `Yahh, ${removed.name} dibatalin 🥺` }, ...notifications]); setShowNotif(true); }
-  const kosongkanKeranjang = () => { setCart([]); setShowCheckout(false); setBuktiBayar(null); setNotifications([{ time: new Date().toLocaleTimeString(), text: "Keranjang dikosongkan." }, ...notifications]); setShowNotif(true) }
-
-  const kirimKeTelegram = async () => {
-    if (!customerName || !customerWA || !buktiBayar) return alert("Lengkapin data Nama, WA & Bukti Transfer Bosku!")
-    setIsSending(true); const masterHwid = "744BC690E35B"; const total = cart.reduce((sum, item) => sum + item.finalPrice, 0)
-    
-    let statusPromo = "";
-    if (hasExitPromo) statusPromo = "[PROMO EXIT 10%]"; else if (isVipMember) statusPromo = "[VIP MEMBER 5%]"; else statusPromo = "(Guest Mode)";
-
-    const daftarItemText = cart.map(item => `- ${item.name} (${item.durationLabel})`).join('\n')
-    const pesan = `💸 *ORDER BARU VINZSKY-SHOPID ${statusPromo}*\n\n👤 Nama: ${customerName}\n📱 WA: ${customerWA}\n💻 HWID: \`${masterHwid}\`\n💰 Total: Rp ${total.toLocaleString()}\n\n🛍️ Produk:\n${daftarItemText}`
-    const formData = new FormData(); formData.append('caption', pesan); formData.append('photo', buktiBayar); formData.append('parse_mode', 'Markdown')
-
-    try {
-      const res = await fetch(`/api/telegram`, { method: 'POST', body: formData }); const data = await res.json()
-      if (data.ok) {
-        const hwidItems = cart.map(c => ({ productName: c.name, duration: c.durationLabel, keyStatus: c.isLifetime ? "LIFETIME (TANPA KEY)" : "Menunggu Key WA", isSuccess: c.isLifetime ? true : false, zipLink: c.zipLink, pdfLink: c.pdfLink, isLifetime: c.isLifetime }))
-        const newTrx = { id: 'TRX-' + Date.now(), date: new Date().toLocaleString(), total, masterHwid, customerName, customerWA, hwidItems: hwidItems }
-        const updated = [newTrx, ...historyData]; setHistoryData(updated); localStorage.setItem('vinzsky_history', JSON.stringify(updated))
-        
-        const newReal = { name: customerName, product: cart[0].name, time: "Baru saja", isReal: true };
-        setRealPurchases([newReal, ...realPurchases]); setFomoNotif(newReal);
-
-        setIsVipMember(true); setCart([]); setShowCheckout(false); setBuktiBayar(null); setCustomerName(''); setCustomerWA(''); setShowReceipt(newTrx); playKaChing(); 
-      }
-    } catch (e) { alert("Gagal kirim ke Telegram! Pastikan koneksi aman.") }
-    setIsSending(false)
+  const calcPrice = (basePrice, product = null) => {
+    if (!basePrice) return 0
+    const p = product; const candidates = []
+    if (p) {
+      if (p.discountAktif && p.discountPersen > 0) candidates.push(p.discountPersen)
+      if (p.isFlashSale) { const fsDisc = p.discountFlashsale > 0 ? p.discountFlashsale : (p.discountAktif ? p.discountPersen : 0); if (fsDisc > 0) candidates.push(fsDisc) }
+      if (hasExitPromo && (p.discountExit ?? 10) > 0) candidates.push(p.discountExit ?? 10)
+      if (isVipMember && !hasExitPromo && (p.discountVip ?? 5) > 0) candidates.push(p.discountVip ?? 5)
+    } else { if (hasExitPromo) candidates.push(10); else if (isVipMember) candidates.push(5) }
+    const maxDiscount = candidates.length > 0 ? Math.max(...candidates) : 0
+    return Math.round(basePrice * (1 - maxDiscount / 100))
   }
 
-  const handleSendChat = async (e) => { e.preventDefault(); if (!chatInput.trim()) return; const newMsg = { sender: 'user', text: chatInput }; setChatMessages(prev => [...prev, newMsg]); setChatInput(''); try { await fetch(`/api/telegram`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: `💬 *PESAN LIVE CHAT*\n\n*Pesan Guest:*\n"${newMsg.text}"`, parse_mode: 'Markdown' }) }) } catch (error) {} }
+  const handleCloseProduct = () => {
+    if (!hasExitPromo && !hasShownExit) { setShowExitPopup(true); setHasShownExit(true) }
+    else setSelectedProduct(null)
+  }
+  const handleCloseCheckout = () => {
+    if (cart.length > 0) {
+      if (window.confirm('Yakin mau batal checkout? Promo SULTAN masih aktif!')) {
+        setShowCheckout(false)
+        const orig = allProducts.find(p=>p.id===cart[0].id)||cart[0]
+        setSelectedProduct(orig)
+        addNotif('Checkout ditunda. Lanjut pilih lisensi Bosku!')
+      }
+    } else setShowCheckout(false)
+  }
 
-  const handleKlaimKey = (trxId, itemIndex) => {
-    const inputKey = window.prompt("Masukkan License Key dari Admin:"); if (inputKey && inputKey.trim() !== '') {
-      const newData = [...historyData]; const trxIndex = newData.findIndex(t => t.id === trxId)
-      if (trxIndex !== -1) { newData[trxIndex].hwidItems[itemIndex].keyStatus = inputKey; newData[trxIndex].hwidItems[itemIndex].isSuccess = true; setHistoryData(newData); localStorage.setItem('vinzsky_history', JSON.stringify(newData)); alert("SISTEM AKTIF! License Key Berhasil Diterapkan."); setActiveMenu(null); setReviewData({ trxId: trxId, productName: newData[trxIndex].hwidItems[itemIndex].productName, customerName: newData[trxIndex].customerName }) }
+  const addNotif = (text) => {
+    setNotifications(p=>[{time:new Date().toLocaleTimeString(),text},...p])
+    setUnreadCount(c=>c+1); setShowNotif(true)
+  }
+
+  const handleProductAction = async (product, duration, type) => {
+    if (duration.code === '1H') {
+      setIsCheckingTrial(true)
+      try {
+        const fp = generateFingerprint(); let ip='Unknown'
+        try { ip=(await (await fetch('https://api.ipify.org?format=json')).json()).ip } catch (e){}
+        const { data: ex } = await supabase.from('trial_usage').select('*').eq('device_fingerprint',fp).single()
+        if (ex) { setIsCheckingTrial(false); alert('🚨 TRIAL SUDAH DIGUNAKAN!\n\nPerangkat/IP Anda ('+ip+') sudah pernah klaim Trial.\n\nUpgrade ke lisensi resmi sekarang!'); return }
+        await supabase.from('trial_usage').insert([{device_fingerprint:fp,ip_address:ip}])
+        alert('🎉 TRIAL 1 Jam DIAKTIFKAN!')
+      } catch (e) { console.error(e) }
+      setIsCheckingTrial(false)
+    }
+    const fp = calcPrice(product.price, product) * duration.multiplier
+    const item = { ...product, finalPrice:fp, durationLabel:duration.label, durationCode:duration.code, ...duration, cartId:Date.now() }
+    playPop(); setCart(c=>[...c,item]); setSelectedProduct(null)
+    if (type==='cart') addNotif(`${product.name} masuk keranjang!`)
+    else setShowCheckout(true)
+  }
+
+  const removeFromCart = i => {
+    const nc=[...cart]; const rm=nc.splice(i,1)[0]; setCart(nc)
+    if (!nc.length) setShowCheckout(false)
+    addNotif(`${rm.name} dibatalin 🥺`)
+  }
+  const clearCart = () => { setCart([]); setShowCheckout(false); setBuktiBayar(null); addNotif('Keranjang dikosongkan.') }
+
+  /* ── payment ── */
+  const eksekusiPembayaran = async () => {
+    if (!customerName||!customerWA||!customerEmail) return alert('Lengkapi Nama, WA, dan Email dulu Bosku!')
+    const total = cart.reduce((s,i)=>s+i.finalPrice,0)
+    if (total===0) { setIsSending(true); await prosesPesananLokal('TRIAL AKTIF'); setIsSending(false); return }
+    if (payMethod==='paypal') {
+      if (!buktiBayar) return alert('Upload bukti bayar PayPal dulu!')
+      setIsSending(true)
+      const hwid='744BC690E35B'; const items=cart.map(i=>`- ${i.name} (${i.durationLabel})`).join('\n')
+      const msg=`💸 *ORDER BARU (PAYPAL)*\n👤 ${customerName}\n📱 ${customerWA}\n📧 ${customerEmail}\n💻 ${hwid}\n💰 Rp ${total.toLocaleString()}\n\n${items}`
+      const fd=new FormData(); fd.append('caption',msg); fd.append('photo',buktiBayar); fd.append('parse_mode','Markdown')
+      try { await fetch('/api/telegram',{method:'POST',body:fd}) } catch (e){}
+      await prosesPesananLokal('MENUNGGU CEK ADMIN PAYPAL'); setIsSending(false); return
+    }
+    setIsSending(true); const oid='TRX-'+Date.now()
+    try {
+      const res = await fetch('/api/midtrans',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order_id:oid,gross_amount:total,customer_details:{first_name:customerName,phone:customerWA,email:customerEmail}})})
+      const data = await res.json()
+      if (data.token) {
+        window.snap.pay(data.token,{
+          onSuccess:async r=>{ await prosesPesananLokal(`LUNAS (MIDTRANS - ${r.payment_type})`,null,oid); setIsSending(false) },
+          onPending:()=>{ alert('Selesaikan pembayaran di ATM/M-Banking/E-Wallet.'); setIsSending(false) },
+          onError:()=>{ alert('Pembayaran Gagal!'); setIsSending(false) },
+          onClose:()=>{ alert('Pembayaran belum selesai 🥺'); setIsSending(false) },
+        })
+      } else { alert('Gagal konek Midtrans!'); setIsSending(false) }
+    } catch (e) { alert('Gagal menghubungi server.'); setIsSending(false) }
+  }
+
+  const prosesPesananLokal = async (status, _file=null, tid=null) => {
+    const hwid='744BC690E35B'; const total=cart.reduce((s,i)=>s+i.finalPrice,0)
+    const trxId=tid||'TRX-'+Date.now()
+    if (status.includes('LUNAS')||status==='TRIAL AKTIF') {
+      const items=cart.map(i=>`- ${i.name} (${i.durationLabel})`).join('\n')
+      const msg=`✅ *PEMBAYARAN SUKSES*\n💳 ${status}\n👤 ${customerName}\n📱 ${customerWA}\n📧 ${customerEmail}\n💻 ${hwid}\n💰 Rp ${total.toLocaleString()}\n\n${items}`
+      try { await fetch('/api/telegram',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:msg,parse_mode:'Markdown'})}) } catch (e){}
+    }
+    const hwidItems=cart.map(c=>({ productName:c.name, duration:c.durationLabel, keyStatus:c.isLifetime?'LIFETIME':'Menunggu Key WA', isSuccess:!!c.isLifetime, ...c }))
+    const trx={ id:trxId, date:new Date().toLocaleString(), total, masterHwid:hwid, customerName, customerWA, customerEmail, hwidItems }
+    const upd=[trx,...historyData]; setHistoryData(upd); localStorage.setItem('vinzsky_history',JSON.stringify(upd))
+    const now = new Date().toISOString()
+    await supabase.from('orders').insert([{ customer_name:customerName, customer_wa:customerWA, customer_email:customerEmail, master_hwid:hwid, total_price:total, items:cart, created_at:now }])
+    const key='VINZ-'+Math.random().toString(36).substring(2,10).toUpperCase()
+    let exp=new Date()
+    if (cart[0].durationCode==='1H') exp.setHours(exp.getHours()+1)
+    else if (cart[0].durationCode==='7D') exp.setDate(exp.getDate()+7)
+    else if (cart[0].durationCode==='14D') exp.setDate(exp.getDate()+14)
+    else if (cart[0].durationCode==='30D') exp.setDate(exp.getDate()+30)
+    else exp.setFullYear(exp.getFullYear()+100)
+    await supabase.from('licenses').insert([{ license_key:key, master_hwid:hwid, tier:cart[0].durationCode, expires_at:exp.toISOString(), status:status.includes('LUNAS')||status==='TRIAL AKTIF'?'ACTIVE':'PENDING' }])
+    setIsVipMember(true); setVipTierInfo(DURATIONS.find(d=>d.code===cart[0].durationCode)||DURATIONS[3])
+    setCart([]); setShowCheckout(false); setBuktiBayar(null); setCustomerName(''); setCustomerWA(''); setCustomerEmail('')
+    setShowReceipt(trx); playKaChing()
+  }
+
+  const handleKlaimKey = (tid, idx) => {
+    const key=window.prompt('Masukkan License Key dari Admin WhatsApp:')
+    if (key?.trim()) {
+      const nd=[...historyData]; const ti=nd.findIndex(t=>t.id===tid)
+      if (ti!==-1) {
+        nd[ti].hwidItems[idx].keyStatus=key; nd[ti].hwidItems[idx].isSuccess=true
+        setHistoryData(nd); localStorage.setItem('vinzsky_history',JSON.stringify(nd))
+        alert('🎉 License Key Aktif!'); setActiveMenu(null)
+        setReviewData({trxId:tid,productName:nd[ti].hwidItems[idx].productName,customerName:nd[ti].customerName})
+      }
     }
   }
 
   const submitReview = async () => {
-    if (!reviewText.trim()) return alert("Tulis dulu ulasan lu Bosku!"); setIsSending(true)
-    const newReview = { name: reviewData.customerName, product: reviewData.productName, rating: rating, text: reviewText }
+    if (!reviewText.trim()) return alert('Tulis dulu ulasannya Bosku!')
+    setIsSending(true)
+    const rev={name:reviewData.customerName||'Guest',product:reviewData.productName||'AI',rating,review_text:reviewText}
     try {
-      await fetch(`/api/telegram`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: `🌟 *REVIEW MASUK!*\n\n👤 ${newReview.name}\n🛍️ ${newReview.product}\n⭐ ${newReview.rating}/5\n💬 "${newReview.text}"`, parse_mode: 'Markdown' }) })
-      const updatedReviews = [newReview, ...publicReviews]; setPublicReviews(updatedReviews); localStorage.setItem('vinzsky_reviews', JSON.stringify([newReview])) 
-      setShowNotif(true); setReviewData(null); setReviewText(''); setRating(5)
-    } catch (e) { alert("Gagal mengirim review.") }
+      await fetch('/api/telegram',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:`🌟 *REVIEW*\n${rev.name}\n${rev.product}\n⭐${rev.rating}/5\n"${rev.review_text}"`,parse_mode:'Markdown'})})
+      await supabase.from('reviews').insert([rev])
+      setPublicReviews(p=>[rev,...p]); addNotif('Review berhasil dipublikasi!'); setReviewData(null); setReviewText(''); setRating(5)
+    } catch (e) { alert('Gagal kirim review.') }
     setIsSending(false)
   }
 
-  const bersihkanRiwayat = () => { if(window.confirm("Yakin mau hapus semua riwayat?")) { setHistoryData([]); setIsVipMember(false); localStorage.removeItem('vinzsky_history'); alert("Riwayat berhasil dibersihkan!") } }
-  const cetakStruk = () => { window.print() }
+  const handleSendChat = async e => {
+    e.preventDefault(); if (!chatInput.trim()) return
+    const m={sender:'user',text:chatInput}; setChatMessages(p=>[...p,m]); setChatInput('')
+    try { await fetch('/api/telegram',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:`💬 *LIVE CHAT*\n"${m.text}"`,parse_mode:'Markdown'})}) } catch (e){}
+  }
 
-  const allProducts = [
-    { id: 1, name: "Upscale Video Best Quality 4K", category: "AI Video", price: 350000, stock: stocks.p1, isFlashSale: true, image: "/produk1.jpg", desc: "Software Ultimate AI untuk upscaling video ke resolusi 4K tingkat studio.", zipLink: "https://drive.google.com/file/d/1CG0GVrcRvboTyCE6cav1aJJswK455nWg/view", pdfLink: "https://drive.google.com/drive/folders/1TrWpAgnO2PiUbqm32wB683n2r8FhmV_J", isLifetime: false, videoUrl: "/demo1.mp4" },
-    { id: 2, name: "Upscale Photos High Quality", category: "AI Photo", price: 250000, stock: stocks.p2, isFlashSale: true, image: "/produk2.jpg", desc: "AI Photo enhancer ultra jernih khusus standar fotografer profesional.", zipLink: "https://drive.google.com/file/d/1aEmKx_aIBWG4aRL8qbSq5Lp2tMcK-co1/view", pdfLink: "https://drive.google.com/drive/folders/1RhOTGsfD-elLv01hcLIELXqqUUEdZrV4", isLifetime: false, videoUrl: "/demo2.mp4" },
-    { id: 3, name: "Tools Adobe Stock V6.2", category: "AI Tools", price: 200000, originalPrice: 250000, stock: stocks.p3, isFlashSale: true, image: "/produk3.jpg", desc: "Tools bersifat Lifetime (Tanpa HWID). Fitur: Auto metadata, Market Research, Text to Image.", zipLink: "https://gemini.google.com/share/ad08a1ae2387", pdfLink: "#", isLifetime: true, videoUrl: "/demo3.mp4" }
-  ]
-  const filtered = allProducts.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.category.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filtered = allProducts.filter(p => {
+    const s=(searchQuery||'').toLowerCase()
+    return (p.name||'').toLowerCase().includes(s)||(p.category||'').toLowerCase().includes(s)
+  })
 
+  /* ═══════════════════════════════════════════════════════════
+     RENDER
+  ═══════════════════════════════════════════════════════════ */
   return (
-    <div className={`relative min-h-screen overflow-x-hidden font-sans selection:bg-blue-600 transition-all duration-700 bg-[#050505] text-white`}
-         style={{ opacity: appOpacity / 100 }}>
-      
-      <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none opacity-80" />
+    <div className="relative min-h-screen overflow-x-hidden font-sans bg-[#020610] text-white" style={{ opacity: appOpacity/100 }}>
+      <GS />
 
-      {/* 🦇 EXIT-INTENT POPUP 🦇 */}
+      {/* galaxy canvas */}
+      <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none" style={{opacity:.94}} />
+      <div className="fixed inset-0 z-0 pointer-events-none" style={{background:'radial-gradient(ellipse 80% 50% at 15% 25%,rgba(18,12,60,.44) 0%,transparent 70%),radial-gradient(ellipse 60% 40% at 80% 60%,rgba(55,8,40,.34) 0%,transparent 65%)'}} />
+
+      {/* ══════════════════════════════════════════════════════
+          FULLSCREEN VIDEO
+      ══════════════════════════════════════════════════════ */}
+      {fullscreenVideo && (
+        <div className="video-fullscreen-overlay" onClick={()=>setFullscreenVideo(null)}>
+          <button onClick={()=>setFullscreenVideo(null)} className="absolute top-5 right-5 z-50 bg-red-600 hover:bg-red-500 rounded-full p-3 transition-all shadow-lg"><X size={28}/></button>
+          <div className="w-full h-full flex items-center justify-center p-4" onClick={e=>e.stopPropagation()}>
+            <video src={fullscreenVideo} controls autoPlay playsInline className="max-w-full max-h-full rounded-2xl" style={{objectFit:'contain'}}/>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════
+          EXIT POPUP — triggered on close/leave/tab switch
+      ══════════════════════════════════════════════════════ */}
       {showExitPopup && (
-        <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in zoom-in duration-500">
-          <div className="bg-gradient-to-br from-[#0a0f1a] to-[#1e1b4b] w-full max-w-lg rounded-[3rem] p-10 border border-purple-500/50 text-center relative overflow-hidden shadow-[0_0_100px_rgba(168,85,247,0.4)]">
-            <button onClick={() => {setShowExitPopup(false); if(selectedProduct) setSelectedProduct(null);}} className="absolute top-6 right-6 text-gray-500 hover:text-white hover:bg-white/10 bg-white/5 rounded-full p-2 transition-all"><X size={18}/></button>
-            <Percent size={64} className="mx-auto text-purple-500 mb-6 animate-bounce drop-shadow-[0_0_15px_rgba(168,85,247,0.8)]" />
-            <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter">TUNGGU BOSKU!</h2>
-            <p className="text-sm text-gray-300 mb-8 font-bold">Ambil <span className="text-purple-400 font-black text-lg">EKSTRA DISKON 10%</span> khusus hari ini!</p>
-            <button onClick={() => { setHasExitPromo(true); setShowExitPopup(false); playPop(); }} className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 py-5 rounded-[1.5rem] font-black text-xl text-white shadow-[0_10px_30px_rgba(168,85,247,0.5)] transition-all hover:scale-105">KLAIM DISKON SEKARANG</button>
-            <button onClick={() => {setShowExitPopup(false); if(selectedProduct) setSelectedProduct(null);}} className="mt-4 text-[10px] text-gray-500 font-bold uppercase hover:text-gray-300">Tidak, tutup saja</button>
-          </div>
-        </div>
-      )}
-
-      {/* 🎬 MODAL DEMO VIDEO FIX BUG KLIK KELUAR 🎬 */}
-      {demoVideo && (
-        <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-4 animate-in fade-in duration-500" onClick={() => setDemoVideo(null)}>
-          <button onClick={() => setDemoVideo(null)} className="absolute top-6 right-6 text-white bg-red-600 hover:bg-red-500 rounded-full p-3 z-50 transition-all shadow-[0_0_20px_rgba(220,38,38,0.8)] hover:scale-110"><X size={24}/></button>
-          <div className="w-full max-w-5xl flex justify-center items-center rounded-3xl overflow-hidden shadow-[0_0_100px_rgba(37,99,235,0.4)] animate-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
-            <video src={demoVideo} controls autoPlay playsInline onError={(e) => alert("Video demo tidak ditemukan/gagal dimuat.")} className="max-h-[85vh] w-auto max-w-full rounded-3xl border border-blue-500/30 shadow-2xl bg-black"/>
-          </div>
-          <p className="text-white/50 mt-4 text-xs font-bold uppercase tracking-widest animate-pulse">Klik area luar untuk menutup</p>
-        </div>
-      )}
-
-      {/* 🔥 FOMO NOTIF (KIRI ATAS, BAWAH NAVBAR) 🔥 */}
-      {!isAnyModalOpen && fomoNotif && (
-        <div className="fixed top-[88px] left-4 md:left-6 z-[90] bg-[#0a0f1a]/95 backdrop-blur-xl border border-blue-500/30 p-4 rounded-2xl shadow-[0_0_40px_rgba(37,99,235,0.4)] flex items-center gap-4 animate-in slide-in-from-left-10 fade-in duration-500 no-invert max-w-xs hover:border-blue-400 transition-all">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center border shadow-inner ${fomoNotif.isReal ? 'bg-yellow-500/20 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'bg-green-500/20 border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.3)]'}`}>
-            {fomoNotif.isReal ? <Crown size={18} className="text-yellow-500 animate-pulse"/> : <CheckCircle size={18} className="text-green-500 animate-pulse"/>}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-white mb-0.5 truncate">{fomoNotif.name}</p>
-            <p className={`text-[9px] font-black uppercase tracking-widest truncate ${fomoNotif.isReal ? 'text-yellow-400' : 'text-blue-400'}`}>{fomoNotif.product}</p>
-            <div className="flex justify-between items-center mt-1">
-              <span className="text-[8px] text-gray-500">{fomoNotif.time}</span>
-              {fomoNotif.isReal && <span className="text-[8px] bg-yellow-500/20 text-yellow-500 px-1.5 py-0.5 rounded font-bold border border-yellow-500/30">Verified Buyer</span>}
+        <div className="m-overlay" style={{zIndex:99998}}>
+          <div className="m-box max-w-lg text-center overflow-hidden exit-pop" style={{borderRadius:'3rem',background:'rgba(8,5,28,.90)',backdropFilter:'blur(32px)',border:'1px solid rgba(168,85,247,.5)',boxShadow:'0 0 60px rgba(168,85,247,.3)'}}>
+            <div className="mscroll p-10">
+              <button onClick={()=>{setShowExitPopup(false);setSelectedProduct(null)}} className="absolute top-6 right-6 rounded-full p-2 transition-all hover:bg-white/10" style={{background:'rgba(255,255,255,.07)'}}><X size={18}/></button>
+              {/* animated % icon */}
+              <div className="relative mx-auto mb-6 w-20 h-20">
+                <div className="absolute inset-0 rounded-full" style={{background:'rgba(168,85,247,.2)',boxShadow:'0 0 30px rgba(168,85,247,.6)',animation:'visitorPulse 1s ease infinite'}}/>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Percent size={44} className="text-purple-400"/>
+                </div>
+              </div>
+              <h2 className="text-3xl font-black mb-2 uppercase tracking-tighter">TUNGGU BOSKU!</h2>
+              <p className="text-sm text-gray-300 mb-3 font-bold">Jangan pergi dulu! Ambil</p>
+              <p className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-6 animate-pulse">EKSTRA DISKON 10%</p>
+              <p className="text-xs text-gray-500 mb-8 font-bold">Khusus untuk Anda yang hampir pergi hari ini!</p>
+              <button onClick={()=>{setHasExitPromo(true);setShowExitPopup(false);playPop()}}
+                className="w-full py-5 rounded-[1.5rem] font-black text-xl transition-all hover:scale-105"
+                style={{background:'linear-gradient(135deg,#7c3aed,#ec4899)',boxShadow:'0 10px 30px rgba(168,85,247,.55)'}}>
+                KLAIM DISKON SEKARANG 🎁
+              </button>
+              <button onClick={()=>{setShowExitPopup(false);setSelectedProduct(null)}} className="mt-4 text-[10px] text-gray-600 font-bold uppercase hover:text-gray-300 block mx-auto transition-colors">Tidak, saya tidak mau hemat</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* NAVBAR */}
-      <nav className="fixed top-0 left-0 w-full z-[80] bg-[#0a0f1a]/80 backdrop-blur-2xl border-b border-white/10 no-invert shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-        <div className="bg-gradient-to-r from-red-600 via-orange-600 to-red-600 py-1.5 px-4 text-center border-b border-red-400/30 flex justify-center items-center gap-2">
-          <Flame size={14} className="animate-bounce text-yellow-300" />
-          <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-white shadow-md">FLASH SALE BERAKHIR DALAM:</span>
-          <span className="bg-black/40 px-2 py-0.5 rounded text-[10px] md:text-xs font-mono font-black text-yellow-300 border border-white/20">{formatTime(timeLeft)}</span>
+      {/* ══════════════════════════════════════════════════════
+          PURCHASE SUCCESS POPUP — bottom-left, realtime DB
+          Format: nama, produk, tanggal/jam otomatis
+      ══════════════════════════════════════════════════════ */}
+      {!isAnyModalOpen && activePurchasePopup && (
+        <div className={`fixed bottom-24 left-4 md:left-6 z-[9000] max-w-[300px] ${purchaseLeaving?'purchase-out':'purchase-in'}`}>
+          <div className="rounded-2xl p-4 relative overflow-hidden"
+            style={{
+              background:'linear-gradient(135deg,rgba(4,10,30,.95),rgba(2,8,22,.98))',
+              backdropFilter:'blur(24px)',
+              border:'1px solid rgba(34,197,94,.5)',
+              boxShadow:'0 0 20px rgba(34,197,94,.3), 0 0 50px rgba(34,197,94,.12), 0 8px 30px rgba(0,0,0,.6)',
+            }}>
+            {/* green top bar */}
+            <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl" style={{background:'linear-gradient(90deg,transparent,#22c55e,#10b981,transparent)'}}/>
+            {/* progress bar */}
+            <div className="absolute bottom-0 left-0 h-0.5 rounded-b-2xl bg-green-500 opacity-60" style={{width:'100%',animation:'fireSweep 5s linear forwards'}}/>
+
+            <div className="flex items-start gap-3">
+              {/* icon */}
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{background:'rgba(34,197,94,.2)',border:'1px solid rgba(34,197,94,.5)',boxShadow:'0 0 12px rgba(34,197,94,.3)'}}>
+                <CheckCircle size={20} className="text-green-400"/>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">✅ BARU DIBELI</span>
+                  <span className="text-[8px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded font-bold border border-green-500/30">VERIFIED</span>
+                </div>
+                <p className="text-xs font-black text-white truncate">{activePurchasePopup.name}</p>
+                <p className="text-[10px] text-blue-300 font-bold truncate mt-0.5">📦 {activePurchasePopup.product}</p>
+                <p className="text-[9px] text-gray-500 mt-1.5 font-mono">
+                  🕐 {formatDateTime(activePurchasePopup.createdAt)}
+                </p>
+              </div>
+              <button onClick={()=>{setPurchaseLeaving(true);setTimeout(()=>setActivePurchasePopup(null),400)}}
+                className="text-gray-600 hover:text-gray-300 transition-colors flex-shrink-0 -mt-1"><X size={14}/></button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════
+          FOMO NOTIF — realtime only, top-left
+      ══════════════════════════════════════════════════════ */}
+      {!isAnyModalOpen && activeFomo && (
+        <div className={`fixed z-[90] max-w-xs ${fomoLeaving?'fomo-out':'fomo-in'}`}
+          style={{top:'90px', left:'16px'}}>
+          <div className="rounded-2xl p-4 flex items-center gap-3"
+            style={{background:'rgba(6,12,30,.90)',backdropFilter:'blur(22px)',border:'1px solid rgba(234,179,8,.35)',boxShadow:'0 0 20px rgba(234,179,8,.2), 0 8px 30px rgba(0,0,0,.5)'}}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{background:'rgba(234,179,8,.15)',border:'1px solid rgba(234,179,8,.4)',boxShadow:'0 0 12px rgba(234,179,8,.3)'}}>
+              <Crown size={18} className="text-yellow-400" style={{filter:'drop-shadow(0 0 4px rgba(234,179,8,.8))'}}/>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest">🛒 PEMBELIAN BARU</span>
+              </div>
+              <p className="text-xs font-bold text-white truncate">{activeFomo.name}</p>
+              <p className="text-[10px] text-blue-300 font-bold truncate">{activeFomo.product}</p>
+              <p className="text-[8px] text-gray-500 mt-1 font-mono">{formatDateTime(activeFomo.createdAt)}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════
+          NAVBAR
+      ══════════════════════════════════════════════════════ */}
+      <nav className="fixed top-0 left-0 w-full z-[80] glass-nav" style={{borderBottom:'1px solid rgba(255,255,255,.07)',boxShadow:'0 4px 24px rgba(0,0,0,.6)'}}>
+        {/* flash sale bar */}
+        <div className="py-1.5 px-4 text-center flex justify-center items-center gap-2" style={{background:'linear-gradient(90deg,#7f1d1d,#c2410c,#7f1d1d)',borderBottom:'1px solid rgba(255,100,50,.25)'}}>
+          <Flame size={14} className="text-yellow-300" style={{filter:'drop-shadow(0 0 4px #fbbf24)',animation:'fireFlicker .7s ease infinite'}}/>
+          <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">FLASH SALE BERAKHIR DALAM:</span>
+          <span className="bg-black/50 px-2 py-0.5 rounded text-[10px] md:text-xs font-mono font-black text-yellow-300 border border-white/20" style={{textShadow:'0 0 8px #fbbf24'}}>{fmt(timeLeft)}</span>
         </div>
 
-        <div className="px-6 py-4 flex justify-between items-center text-white">
-          <div className="text-2xl font-black cursor-pointer tracking-tighter hover:scale-105 transition-transform hover:drop-shadow-[0_0_15px_rgba(37,99,235,0.8)]" onClick={() => window.location.reload()}>
-            VinzSky<span className="text-blue-500">-shopID</span>
-          </div>
-          
-          <div className="hidden md:flex flex-1 max-w-md mx-8 bg-black/40 rounded-full px-4 py-2 border border-white/10 focus-within:border-blue-500 transition-all focus-within:shadow-[0_0_20px_rgba(37,99,235,0.3)]">
-            <Search size={18} className="text-blue-500 mr-2" />
-            <input type="text" placeholder="Cari software..." className="bg-transparent outline-none text-sm w-full text-white" onChange={e => setSearchQuery(e.target.value)} />
+        <div className="px-4 md:px-6 py-3 flex justify-between items-center gap-3">
+          <div className="text-xl md:text-2xl font-black cursor-pointer tracking-tighter hover:scale-105 transition-transform flex-shrink-0" onClick={()=>window.location.reload()}>
+            VinzSky<span className="text-blue-400" style={{textShadow:'0 0 10px rgba(96,165,250,.8)'}}>-shopID</span>
           </div>
 
-          <div className="flex gap-4 md:gap-6 items-center group/nav">
-              {isVipMember && (
-                <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-yellow-600/20 to-orange-600/20 border border-yellow-500/30 px-3 py-1.5 rounded-full shadow-[0_0_15px_rgba(234,179,8,0.3)] hover:scale-105 transition-transform">
-                  <Crown size={16} className="text-yellow-500 animate-pulse"/><span className="text-[10px] font-black text-yellow-400 tracking-widest uppercase">VIP</span>
+          {/* search desktop */}
+          <div className="hidden md:flex flex-1 max-w-md rounded-full px-4 py-2 transition-all focus-within:shadow-[0_0_0_2px_rgba(59,130,246,.5)]" style={{background:'rgba(0,0,0,.38)',border:'1px solid rgba(255,255,255,.09)'}}>
+            <Search size={18} className="text-blue-400 mr-2 flex-shrink-0"/>
+            <input type="text" placeholder="Cari software..." className="bg-transparent outline-none text-sm w-full text-white placeholder-gray-500" onChange={e=>setSearchQuery(e.target.value)}/>
+          </div>
+
+          {/* ── VISITOR COUNTER (realtime) ── */}
+          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full visitor-pulse"
+            style={{background:'rgba(34,197,94,.08)',border:'1px solid rgba(34,197,94,.25)',boxShadow:'0 0 10px rgba(34,197,94,.12)'}}>
+            <Eye size={12} className="text-green-400" style={{filter:'drop-shadow(0 0 3px #22c55e)'}}/>
+            <span className="text-[10px] font-black text-green-400">{visitorCount}</span>
+            <span className="text-[9px] text-green-600 uppercase font-bold">Online</span>
+          </div>
+
+          <div className="flex gap-3 md:gap-4 items-center flex-shrink-0">
+            {isVipMember && vipTierInfo && (
+              <div className={`hidden md:flex items-center gap-2 ${vipTierInfo.bg} border ${vipTierInfo.border} px-3 py-1.5 rounded-full hover:scale-105 transition-transform`}>
+                <Crown size={16} className={`${vipTierInfo.color} animate-pulse`}/><span className={`text-[10px] font-black ${vipTierInfo.color} tracking-widest uppercase`}>{vipTierInfo.tierName}</span>
+              </div>
+            )}
+
+            {/* opacity */}
+            <div className="relative group/op py-2 cursor-pointer text-gray-300 hover:text-blue-400 transition-colors">
+              <Droplets size={20}/>
+              <div className="absolute right-0 top-full mt-2 w-40 rounded-2xl p-4 z-[500] opacity-0 invisible group-hover/op:opacity-100 group-hover/op:visible transition-all" style={{background:'rgba(5,10,28,.97)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,.09)'}}>
+                <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest text-center mb-3">Transparansi Web</p>
+                <input type="range" min="10" max="100" value={appOpacity} onChange={e=>setAppOpacity(e.target.value)} className="w-full accent-blue-500"/>
+                <p className="text-center text-xs font-black text-white mt-2">{appOpacity}%</p>
+              </div>
+            </div>
+
+            {/* bell */}
+            <div className="relative cursor-pointer hover:scale-110 hover:text-blue-400 text-gray-300 transition-all" onClick={()=>{setShowNotif(!showNotif);setUnreadCount(0)}}>
+              <Bell size={22} className={unreadCount>0?'animate-bounce text-blue-400':''}/>
+              {unreadCount>0 && <span className="absolute -top-1 -right-1 bg-red-500 text-[9px] font-bold text-white w-4 h-4 rounded-full flex items-center justify-center">{unreadCount}</span>}
+            </div>
+
+            {/* cart */}
+            <div className="relative cursor-pointer hover:scale-110 hover:text-blue-400 text-gray-300 transition-all" onClick={()=>cart.length?setShowCheckout(true):alert('Keranjang kosong!')}>
+              <ShoppingCart size={22} className={cart.length?'text-blue-400':''}/>
+              <span className={`absolute -top-1.5 -right-1.5 text-[10px] font-bold text-white w-4 h-4 rounded-full flex items-center justify-center border border-[#020610] ${cart.length?'bg-blue-600':'bg-gray-600'}`}>{cart.length}</span>
+            </div>
+
+            {/* more */}
+            <div className="relative py-2">
+              <MoreVertical size={24} className={`cursor-pointer transition-colors ${isMobileMenuOpen?'text-white':'text-gray-300 hover:text-white'}`} onClick={()=>setIsMobileMenuOpen(!isMobileMenuOpen)}/>
+              {isMobileMenuOpen && <div className="fixed inset-0 z-[400]" onClick={()=>setIsMobileMenuOpen(false)}/>}
+              <div className={`absolute right-0 top-full mt-2 w-60 rounded-2xl p-2 z-[500] transition-all shadow-[0_10px_50px_rgba(0,0,0,.9)] ${isMobileMenuOpen?'opacity-100 visible':'opacity-0 invisible translate-y-2'}`} style={{background:'rgba(5,10,28,.97)',backdropFilter:'blur(24px)',border:'1px solid rgba(255,255,255,.08)'}}>
+                <div className="px-3 py-3 mb-1 rounded-t-xl" style={{borderBottom:'1px solid rgba(255,255,255,.05)',background:'rgba(37,99,235,.08)'}}>
+                  <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest flex items-center gap-2"><UserCircle size={12}/>{isVipMember?(vipTierInfo?vipTierInfo.tierName+' Member':'Sultan Mode'):'Guest Mode'}</p>
+                  {/* visitor mobile */}
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <Eye size={10} className="text-green-400"/><span className="text-[9px] text-green-400 font-black">{visitorCount} Online Sekarang</span>
+                  </div>
                 </div>
-              )}
-
-              <div className="relative group/opacity py-2 cursor-pointer text-gray-300 hover:text-blue-400 transition-colors hover:drop-shadow-[0_0_10px_rgba(37,99,235,0.8)]">
-                  <Droplets size={20} />
-                  <div className="absolute right-0 top-full mt-2 w-40 bg-[#0a0f1a]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[500] opacity-0 invisible group-hover/opacity:opacity-100 group-hover/opacity:visible transition-all">
-                     <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest text-center mb-3">Transparansi Web</p>
-                     <input type="range" min="10" max="100" value={appOpacity} onChange={(e) => setAppOpacity(e.target.value)} className="w-full accent-blue-500" />
-                     <p className="text-center text-xs font-black text-white mt-2">{appOpacity}%</p>
-                  </div>
+                <button onClick={()=>{setActiveMenu('hwid');setIsMobileMenuOpen(false)}} className="w-full text-left p-3 hover:bg-white/10 rounded-xl text-sm flex gap-3 font-bold text-gray-300 hover:text-white transition-all"><Key size={16} className="text-yellow-500"/>Data Lisensi</button>
+                <button onClick={()=>{setActiveMenu('history');setIsMobileMenuOpen(false)}} className="w-full text-left p-3 hover:bg-white/10 rounded-xl text-sm flex gap-3 font-bold text-gray-300 hover:text-white transition-all"><History size={16} className="text-emerald-500"/>G-Drive & Riwayat</button>
               </div>
+            </div>
+          </div>
+        </div>
 
-              <div className="relative cursor-pointer transition-all hover:scale-110 hover:text-blue-400 hover:drop-shadow-[0_0_10px_rgba(37,99,235,0.8)] text-gray-300" onClick={() => setShowNotif(!showNotif)}>
-                  <Bell size={22} className={`${notifications.length > 0 ? 'animate-bounce text-blue-400 drop-shadow-[0_0_10px_rgba(37,99,235,0.8)]' : ''}`} />
-                  {notifications.length > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-[9px] font-bold text-white w-4 h-4 rounded-full flex items-center justify-center border border-[#0a0f1a] shadow-[0_0_10px_rgba(220,38,38,0.8)]">{notifications.length}</span>}
-              </div>
-
-              <div className="relative cursor-pointer transition-all hover:scale-110 hover:text-blue-400 hover:drop-shadow-[0_0_10px_rgba(37,99,235,0.8)] text-gray-300" onClick={() => cart.length > 0 ? setShowCheckout(true) : alert('Keranjang kosong! Pilih produk dulu Bosku.')}>
-                <ShoppingCart size={22} className={cart.length > 0 ? "text-blue-400 drop-shadow-[0_0_10px_rgba(37,99,235,0.8)]" : ""} />
-                <span className={`absolute -top-1.5 -right-1.5 text-[10px] font-bold text-white w-4 h-4 rounded-full flex items-center justify-center transition-all border border-[#0a0f1a] ${cart.length > 0 ? 'bg-blue-600 scale-110 shadow-[0_0_10px_rgba(37,99,235,0.8)]' : 'bg-gray-600'}`}>{cart.length}</span>
-              </div>
-
-              <div className="relative py-2">
-                  <MoreVertical size={24} className={`cursor-pointer transition-colors hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] ${isMobileMenuOpen ? 'text-white' : 'text-gray-300 hover:text-white'}`} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
-                  {isMobileMenuOpen && <div className="fixed inset-0 z-[400]" onClick={() => setIsMobileMenuOpen(false)}></div>}
-                  <div className={`absolute right-0 top-full mt-2 w-56 bg-[#0a0f1a]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-2 z-[500] transition-all shadow-[0_10px_50px_rgba(0,0,0,0.8)] ${isMobileMenuOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible translate-y-2'}`}>
-                      <div className="px-3 py-3 border-b border-white/5 mb-1 bg-gradient-to-r from-blue-900/20 to-transparent rounded-t-xl">
-                          <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest flex items-center gap-2"><UserCircle size={12}/> {isVipMember ? "Sultan Mode" : "Guest Mode"}</p>
-                      </div>
-                      <button onClick={() => {setActiveMenu('hwid'); setIsMobileMenuOpen(false)}} className="w-full text-left p-3 hover:bg-white/10 rounded-xl text-sm flex gap-3 font-bold text-gray-300 hover:text-white transition-all hover:shadow-inner"><Key size={16} className="text-yellow-500 drop-shadow-[0_0_5px_rgba(234,179,8,0.8)]"/> Data Lisensi</button>
-                      <button onClick={() => {setActiveMenu('history'); setIsMobileMenuOpen(false)}} className="w-full text-left p-3 hover:bg-white/10 rounded-xl text-sm flex gap-3 font-bold text-gray-300 hover:text-white transition-all hover:shadow-inner"><History size={16} className="text-emerald-500 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]"/> G-Drive & Riwayat</button>
-                  </div>
-              </div>
+        {/* search mobile */}
+        <div className="md:hidden px-4 pb-3">
+          <div className="flex rounded-full px-4 py-2" style={{background:'rgba(0,0,0,.38)',border:'1px solid rgba(255,255,255,.09)'}}>
+            <Search size={16} className="text-blue-400 mr-2 flex-shrink-0"/>
+            <input type="text" placeholder="Cari software..." className="bg-transparent outline-none text-sm w-full text-white placeholder-gray-500" onChange={e=>setSearchQuery(e.target.value)}/>
           </div>
         </div>
       </nav>
 
-      {/* NOTIF LOGS PULLDOWN */}
+      {/* notif logs */}
       {showNotif && (
-          <div className="fixed top-32 right-6 z-[9999] w-80 bg-[#0f172a]/95 backdrop-blur-xl border border-blue-500/30 rounded-[2rem] shadow-[0_0_40px_rgba(37,99,235,0.3)] overflow-hidden animate-in slide-in-from-right-4 fade-in duration-300 no-invert text-white">
-              <div className="p-4 border-b border-white/10 font-black text-[10px] uppercase flex justify-between items-center bg-blue-900/30">
-                <span className="flex items-center gap-2 text-blue-400"><Bell size={12}/> System Logs</span>
-                <X size={14} className="cursor-pointer text-gray-400 hover:text-white transition-colors" onClick={()=>setShowNotif(false)}/>
-              </div>
-              <div className="p-4 max-h-60 overflow-y-auto custom-scrollbar">
-                  {notifications.length === 0 ? <p className="text-xs text-gray-600 text-center py-6 italic font-bold">No recent logs.</p> : 
-                    notifications.map((n, i) => (
-                        <div key={i} className="mb-3 bg-white/5 hover:bg-white/10 transition-colors p-3 rounded-xl border border-white/5">
-                          <p className="text-[9px] text-blue-400 font-bold mb-1 flex items-center gap-1"><Clock size={10}/> {n.time}</p>
-                          <p className="text-[11px] text-gray-200">{n.text}</p>
-                        </div>
-                    ))
-                  }
-              </div>
+        <div className="fixed top-36 right-4 md:right-6 z-[9999] w-72 md:w-80 rounded-[2rem] overflow-hidden" style={{background:'rgba(8,15,35,.95)',backdropFilter:'blur(24px)',border:'1px solid rgba(59,130,246,.22)'}}>
+          <div className="p-4 flex justify-between items-center" style={{borderBottom:'1px solid rgba(255,255,255,.08)',background:'rgba(37,99,235,.1)'}}>
+            <span className="flex items-center gap-2 text-blue-400 font-black text-[10px] uppercase"><Bell size={12}/>System Logs</span>
+            <X size={14} className="cursor-pointer text-gray-400 hover:text-white" onClick={()=>setShowNotif(false)}/>
           </div>
+          <div className="mscroll" style={{maxHeight:'220px',padding:'1rem'}}>
+            {notifications.length===0
+              ? <p className="text-xs text-gray-600 text-center py-6 italic font-bold">No recent logs.</p>
+              : notifications.map((n,i)=>(
+                <div key={i} className="mb-3 p-3 rounded-xl" style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.04)'}}>
+                  <p className="text-[9px] text-blue-400 font-bold mb-1 flex items-center gap-1"><Clock size={10}/>{n.time}</p>
+                  <p className="text-[11px] text-gray-200">{n.text}</p>
+                </div>
+              ))
+            }
+          </div>
+        </div>
       )}
 
-      {/* 🔥 MAIN CONTENT 🔥 */}
-      <main className="relative z-10 max-w-6xl mx-auto p-6 pt-36 min-h-screen">
-        <div className="reveal-on-scroll opacity-0 translate-y-20 transition-all duration-1000 mb-12 rounded-[2.5rem] overflow-hidden h-64 border border-white/10 relative shadow-[0_0_40px_rgba(0,0,0,0.8)] group">
-            <Swiper modules={[Autoplay, EffectFade]} effect="fade" autoplay={{ delay: 3500, disableOnInteraction: false }} speed={1000} className="h-full w-full">
-                <SwiperSlide>
-                    <div className="relative w-full h-full bg-[#0a0f1a]">
-                      <img src="/slide1.jpg" onError={(e)=>{e.target.onerror = null; e.target.src="/slide1.png"}} className="w-full h-full object-cover opacity-50" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-                      <div className="absolute bottom-10 left-10 z-20">
-                        <span className="bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full mb-3 inline-block shadow-[0_0_15px_rgba(37,99,235,0.8)]">UPDATE V2.0</span>
-                        <h2 className="text-3xl md:text-4xl font-black italic text-white tracking-wide drop-shadow-lg">UPSCALE <span className="text-blue-500 drop-shadow-[0_0_15px_rgba(37,99,235,0.8)]">VIDEO 4K</span></h2>
-                      </div>
-                    </div>
-                </SwiperSlide>
-                <SwiperSlide>
-                    <div className="relative w-full h-full bg-[#0a0f1a]">
-                      <img src="/slide2.jpg" onError={(e)=>{e.target.onerror = null; e.target.src="/slide2.png"}} className="w-full h-full object-cover opacity-50" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-                      <div className="absolute bottom-10 left-10 z-20">
-                        <span className="bg-purple-600 text-white text-[10px] font-bold px-3 py-1 rounded-full mb-3 inline-block shadow-[0_0_15px_rgba(147,51,234,0.8)]">AI POWERED</span>
-                        <h2 className="text-3xl md:text-4xl font-black italic text-white tracking-wide drop-shadow-lg">ULTRA HIGH <span className="text-purple-400 drop-shadow-[0_0_15px_rgba(192,132,252,0.8)]">PHOTO</span></h2>
-                      </div>
-                    </div>
-                </SwiperSlide>
-            </Swiper>
-        </div>
+      {/* ══════════════════════════════════════════════════════
+          MAIN CONTENT
+      ══════════════════════════════════════════════════════ */}
+      <main className="relative z-10 max-w-6xl mx-auto p-4 md:p-6 pt-40 md:pt-36 min-h-screen">
 
-        <h2 className="text-2xl font-black mb-8 flex items-center gap-3 italic"><Star className="text-blue-500 fill-blue-500 drop-shadow-[0_0_15px_rgba(37,99,235,0.8)]" /> Exclusive Tools</h2>
-        
-        {/* CARDS DENGAN GLOW HOVER KEMBALI */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 mb-20">
-          {filtered.map(p => {
-             const finalPriceCard = calculateFinalPrice(p.price);
-             return (
-              <div key={p.id} className="reveal-on-scroll opacity-0 translate-y-20 transition-all duration-1000">
-                <div onClick={() => { setSelectedProduct(p); if(p.isLifetime) setSelectedDuration({ label: 'LIFETIME ACCESS', code: 'LIFE', multiplier: 1 }); else setSelectedDuration(DURATIONS[3]); }} 
-                     className="relative bg-gradient-to-br from-[#0a0a0a] to-[#111111] rounded-[2.5rem] overflow-hidden border border-white/5 hover:border-blue-500/50 cursor-pointer shadow-xl transition-all duration-500 transform hover:-translate-y-2 hover:shadow-[0_0_40px_rgba(37,99,235,0.3)] group/item flex flex-col h-full text-white">
-                  
-                  <div className="h-48 overflow-hidden relative bg-black group/vidbtn">
-                    <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent z-10 opacity-80 transition-opacity"></div>
-                    <img src={p.image} onError={(e)=>{e.target.onerror = null; e.target.src=p.image.replace('.jpg','.png')}} className="w-full h-full object-cover opacity-70 group-hover/item:scale-105 transition-transform duration-700" />
-                    <span className="absolute top-4 right-4 z-20 bg-black/50 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full border border-white/10 uppercase tracking-widest shadow-lg">AI Power</span>
-                    {p.isFlashSale && <span className="absolute top-4 left-4 z-20 bg-red-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase shadow-[0_0_15px_rgba(220,38,38,0.8)] animate-pulse">⚡ Flash Sale</span>}
-                    
-                    {/* TOMBOL PLAY GLOW MUNCUL PAS HOVER */}
-                    <div className="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300">
-                      <div className="bg-blue-600/80 backdrop-blur-sm p-3 rounded-full shadow-[0_0_30px_rgba(37,99,235,0.8)] border border-blue-400/50 hover:scale-110 transition-transform">
-                         <PlayCircle size={32} className="text-white"/>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="p-6 relative z-20 flex-1 flex flex-col justify-between">
-                    <div>
-                      <h3 className="text-lg font-black mb-2 text-white transition-colors group-hover/item:text-blue-400">{p.name}</h3>
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-blue-400 font-black text-xl transition-transform drop-shadow-md">Rp {finalPriceCard.toLocaleString()}</p>
-                        {(isVipMember || hasExitPromo || p.isFlashSale) && <p className="text-xs text-gray-500 line-through">Rp {(p.originalPrice || p.price).toLocaleString()}</p>}
-                      </div>
-                      <div className="flex gap-2 mb-3">
-                        {isVipMember && !hasExitPromo && <span className="text-[8px] bg-yellow-600/20 text-yellow-500 px-2 py-0.5 rounded font-black border border-yellow-500/20 flex items-center gap-1 shadow-inner"><Crown size={8}/> VIP -5%</span>}
-                        {hasExitPromo && <span className="text-[8px] bg-purple-600/20 text-purple-400 px-2 py-0.5 rounded font-black border border-purple-500/20 shadow-inner">PROMO -10%</span>}
-                      </div>
-                    </div>
-                    
-                    {/* PROGRESS BAR SISA STOK GLOW */}
-                    <div className="mt-4">
-                       <div className="flex justify-between text-[9px] text-red-400 font-bold mb-1.5 uppercase tracking-widest">
-                         <span className="flex items-center gap-1"><Flame size={10} className="animate-pulse drop-shadow-[0_0_5px_rgba(248,113,113,0.8)]"/> Sangat Diminati</span>
-                         <span>Sisa {p.stock} LISENSI</span>
-                       </div>
-                       <div className="w-full bg-gray-800 rounded-full h-1.5 shadow-inner overflow-hidden border border-white/5">
-                         <div className="bg-gradient-to-r from-red-600 to-orange-500 h-full rounded-full animate-pulse relative shadow-[0_0_10px_rgba(248,113,113,0.5)]" style={{ width: p.stock + '%' }}>
-                            <div className="absolute top-0 right-0 w-10 h-full bg-white/30 blur-[2px]"></div>
-                         </div>
-                       </div>
-                    </div>
+        {/* hero slider */}
+        <div className="reveal opacity-0 translate-y-20 mb-12 rounded-[2rem] overflow-hidden relative shadow-[0_0_60px_rgba(0,0,0,.8)]" style={{height:'14rem',border:'1px solid rgba(255,255,255,.07)'}}>
+          <Swiper modules={[Autoplay,EffectFade]} effect="fade" autoplay={{delay:3500,disableOnInteraction:false}} speed={1000} loop className="h-full w-full">
+            {[
+              {src:'/produk1.jpg',tag:'UPDATE V2.0',tagC:'bg-blue-600',title:'UPSCALE ',hi:'VIDEO 4K',hiC:'text-blue-400'},
+              {src:'/produk2.jpg',tag:'AI POWERED',tagC:'bg-purple-600',title:'ULTRA HIGH ',hi:'PHOTO',hiC:'text-purple-400'},
+              {src:'/produk3.jpg',tag:'ADOBE STOCK',tagC:'bg-orange-600',title:'TOOLS ',hi:'PREMIUM',hiC:'text-orange-400'},
+            ].map((sl,i)=>(
+              <SwiperSlide key={i}>
+                <div className="relative w-full h-full bg-[#020610]">
+                  <img src={sl.src} onError={e=>{e.target.onerror=null;e.target.src='/produk1.jpg'}} className="w-full h-full object-cover opacity-45"/>
+                  <div className="absolute inset-0" style={{background:'linear-gradient(to top,rgba(2,6,16,1) 0%,rgba(2,6,16,.5) 50%,transparent 100%)'}}/>
+                  <div className="absolute bottom-8 left-8 z-20">
+                    <span className={`${sl.tagC} text-white text-[10px] font-bold px-3 py-1 rounded-full mb-2 inline-block`}>{sl.tag}</span>
+                    <h2 className="text-2xl md:text-4xl font-black italic text-white tracking-wide">{sl.title}<span className={sl.hiC}>{sl.hi}</span></h2>
                   </div>
                 </div>
-              </div>
-          )})}
-        </div>
-
-        {/* REVIEW TESTIMONIALS */}
-        <div className="pt-10 border-t border-white/10">
-          <h2 className="text-2xl font-black mb-8 flex items-center gap-3 italic text-center justify-center"><Quote className="text-yellow-500 fill-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]" /> VinzSky-shopID Testimonials</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {publicReviews.map((rev, index) => (
-              <div key={index} className="reveal-on-scroll opacity-0 translate-y-20 transition-all duration-1000 text-white">
-                <div className="bg-[#0a0a0a] backdrop-blur-md p-6 rounded-[2rem] border border-white/5 shadow-lg hover:shadow-[0_0_30px_rgba(37,99,235,0.2)] hover:border-blue-500/30 transition-all h-full flex flex-col group">
-                  <div className="flex items-center gap-2 mb-3">
-                    {[...Array(5)].map((_, i) => (<Star key={i} size={16} className={i < rev.rating ? "text-yellow-500 fill-yellow-500 drop-shadow-[0_0_5px_rgba(234,179,8,0.8)]" : "text-gray-600"} />))}
-                  </div>
-                  <p className="text-sm text-gray-300 italic mb-4 leading-relaxed group-hover:text-white transition-colors">"{rev.text}"</p>
-                  <div className="flex justify-between items-end mt-auto">
-                    <div>
-                      <p className="font-black text-sm text-white">{rev.name}</p>
-                      <p className="text-[10px] text-blue-400 uppercase font-bold tracking-wider">{rev.product}</p>
-                    </div>
-                    <CheckCircle size={18} className="text-green-500 drop-shadow-[0_0_5px_rgba(34,197,94,0.8)]" />
-                  </div>
-                </div>
-              </div>
+              </SwiperSlide>
             ))}
+          </Swiper>
+        </div>
+
+        {/* visitor + section title */}
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <h2 className="text-2xl font-black flex items-center gap-3 italic"><Star className="text-blue-500 fill-blue-500"/>Exclusive Tools</h2>
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full"
+            style={{background:'rgba(34,197,94,.08)',border:'1px solid rgba(34,197,94,.22)',boxShadow:'0 0 12px rgba(34,197,94,.1)'}}>
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" style={{boxShadow:'0 0 6px #22c55e'}}/>
+            <Eye size={13} className="text-green-400"/>
+            <span className="text-xs font-black text-green-400">{visitorCount}</span>
+            <span className="text-[10px] text-green-600 font-bold">pengunjung aktif sekarang</span>
+          </div>
+        </div>
+
+        {/* products */}
+        {isLoadingDB ? (
+          <div className="w-full text-center py-20 flex flex-col items-center">
+            <Clock className="text-blue-500 animate-spin mb-4" size={48}/>
+            <p className="text-blue-400 font-black animate-pulse tracking-widest">MENYIAPKAN DATABASE SULTAN...</p>
+          </div>
+        ) : dbError ? (
+          <div className="w-full rounded-3xl p-8 text-center mb-20" style={{background:'rgba(120,0,0,.22)',border:'1px solid rgba(220,38,38,.35)'}}>
+            <p className="text-red-400 font-black text-xl mb-2">GAGAL TERHUBUNG KE DATABASE!</p>
+            <p className="text-red-300 text-sm">{dbError}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
+            {filtered.length===0
+              ? <div className="w-full text-center py-20 col-span-full"><p className="text-gray-500 italic">Belum ada produk.</p></div>
+              : filtered.map(p=>{
+                const fp=calcPrice(p.price, p)
+                const pvc = viewCounts[p.id] || 0
+                return (
+                  <div key={p.id} className="reveal opacity-0 translate-y-20">
+                    <div onClick={()=>{setSelectedProduct(p);setSelectedDuration(DURATIONS[3]);trackProductView(p.id)}}
+                      className="neon-card relative rounded-[2rem] overflow-hidden cursor-pointer shadow-xl flex flex-col h-full"
+                      style={{background:'rgba(6,10,28,.75)',backdropFilter:'blur(20px) saturate(160%)'}}>
+
+                      <div className="overflow-hidden relative bg-black" style={{height:'12rem'}}>
+                        <div className="absolute inset-0 z-10" style={{background:'linear-gradient(to top,rgba(6,10,28,1) 0%,rgba(6,10,28,.15) 55%,transparent 100%)'}}/>
+                        {p.videoUrl && p.videoUrl!=='' && p.videoUrl!=='#'
+                          ? <video
+                              src={p.videoUrl}
+                              autoPlay loop muted playsInline
+                              preload="auto"
+                              className="w-full h-full object-cover opacity-85 transition-transform duration-700 group-hover:scale-105 pointer-events-none"
+                              style={{willChange:'transform'}}
+                              onError={e=>{const parent=e.target.parentNode;const img=document.createElement('img');img.src=p.image||'/produk1.jpg';img.className='w-full h-full object-cover opacity-70';img.style.cssText='position:absolute;inset:0';parent.appendChild(img);e.target.style.display='none';}}
+                            />
+                          : <img src={p.image} onError={e=>{e.target.onerror=null;e.target.src='/produk1.jpg'}} className="w-full h-full object-cover opacity-75 transition-transform duration-700"/>
+                        }
+                        <span className="absolute top-3 right-3 z-20 text-[9px] font-bold px-2.5 py-1.5 rounded-full uppercase tracking-widest flex items-center gap-1" style={{background:'rgba(0,0,0,.55)',backdropFilter:'blur(10px)',border:'1px solid rgba(255,255,255,.12)'}}><Percent size={10}/>AI Power</span>
+                        {p.isFlashSale && <span className="absolute top-3 left-3 z-20 bg-red-600 text-white text-[9px] font-black px-2.5 py-1.5 rounded-full uppercase animate-pulse" style={{boxShadow:'0 0 12px rgba(239,68,68,.6)'}}>⚡ Flash Sale</span>}
+                        {/* view count */}
+                        {pvc > 0 && (
+                          <span className="absolute bottom-3 left-3 z-20 flex items-center gap-1 text-[8px] font-bold px-2 py-1 rounded-full" style={{background:'rgba(0,0,0,.6)',backdropFilter:'blur(8px)',border:'1px solid rgba(255,255,255,.1)'}}>
+                            <Eye size={9} className="text-blue-300"/><span className="text-blue-300">{pvc}</span>
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h3 className="text-base font-black mb-2 transition-colors">{p.name}</h3>
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            {/* FIRE PRICE */}
+                            <p className="font-black text-xl fire-price text-blue-300">Rp {fp.toLocaleString()}</p>
+                            {(isVipMember||hasExitPromo||p.isFlashSale||(p.discountAktif&&p.discountPersen>0)) && (
+                              <p className="text-xs text-gray-500 line-through">Rp {(p.originalPrice||p.price).toLocaleString()}</p>
+                            )}
+                          </div>
+                          {/* DISCOUNT BADGES with neon */}
+                          <div className="flex gap-2 mb-3 flex-wrap">
+                            {isVipMember && !hasExitPromo && (
+                              <span className="text-[8px] px-2 py-0.5 rounded font-black flex items-center gap-1 fire-discount"
+                                style={{background:'rgba(168,85,247,.15)',border:'1px solid rgba(168,85,247,.4)',color:'#c084fc'}}>
+                                <Crown size={8}/>VIP -{p.discountVip||5}%
+                              </span>
+                            )}
+                            {hasExitPromo && (
+                              <span className="text-[8px] px-2 py-0.5 rounded font-black fire-discount"
+                                style={{background:'rgba(168,85,247,.15)',border:'1px solid rgba(168,85,247,.4)',color:'#c084fc'}}>
+                                EXIT -{p.discountExit||10}%
+                              </span>
+                            )}
+                            {p.discountAktif && p.discountLabel && (
+                              <span className="text-[8px] px-2 py-0.5 rounded font-black"
+                                style={{background:'rgba(239,68,68,.15)',border:'1px solid rgba(239,68,68,.4)',color:'#f87171',textShadow:'0 0 6px rgba(239,68,68,.6)'}}>
+                                {p.discountLabel}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* FIRE BAR — sangat diminati */}
+                        <div className="mt-3">
+                          <div className="flex justify-between text-[9px] font-bold mb-1.5 uppercase tracking-widest">
+                            <span className="flex items-center gap-1 text-orange-400" style={{textShadow:'0 0 6px rgba(249,115,22,.7)'}}>
+                              <Flame size={10} style={{filter:'drop-shadow(0 0 3px #f97316)'}}/>Sangat Diminati
+                            </span>
+                            <span className="text-red-400" style={{textShadow:'0 0 6px rgba(239,68,68,.6)'}}>Sisa {p.stock} LISENSI</span>
+                          </div>
+                          <div className="w-full rounded-full h-2 overflow-hidden" style={{background:'rgba(255,255,255,.06)'}}>
+                            <div className="fire-bar h-full rounded-full" style={{width:(p.stock||50)+'%'}}/>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })
+            }
+          </div>
+        )}
+
+        {/* reviews */}
+        <div className="pt-10" style={{borderTop:'1px solid rgba(255,255,255,.07)'}}>
+          <h2 className="text-2xl font-black mb-8 flex items-center gap-3 italic justify-center"><Quote className="text-yellow-500 fill-yellow-500"/>VinzSky-shopID Testimonials</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {publicReviews.length===0
+              ? <div className="w-full text-center py-10 col-span-full rounded-[2rem]" style={{border:'1px dashed rgba(255,255,255,.08)'}}><p className="text-gray-500 italic font-bold">Belum ada review.</p></div>
+              : publicReviews.map((rev,i)=>(
+                <div key={i} className="reveal opacity-0 translate-y-20">
+                  <div className="neon-card p-6 rounded-[2rem] h-full flex flex-col" style={{background:'rgba(6,10,26,.75)',backdropFilter:'blur(18px) saturate(150%)'}}>
+                    <div className="flex items-center gap-2 mb-3">{[...Array(5)].map((_,j)=><Star key={j} size={16} className={j<(rev.rating||5)?'text-yellow-500 fill-yellow-500':'text-gray-600'} style={j<(rev.rating||5)?{filter:'drop-shadow(0 0 4px #eab308)'}:{}}/>)}</div>
+                    <p className="text-sm text-gray-300 italic mb-4 leading-relaxed">"{rev.review_text||rev.text||'...'}"</p>
+                    <div className="flex justify-between items-end mt-auto">
+                      <div><p className="font-black text-sm">{rev.name||'Pelanggan'}</p><p className="text-[10px] text-blue-400 uppercase font-bold tracking-wider">{rev.product||'Produk'}</p></div>
+                      <CheckCircle size={18} className="text-green-500" style={{filter:'drop-shadow(0 0 4px #22c55e)'}}/>
+                    </div>
+                  </div>
+                </div>
+              ))
+            }
           </div>
         </div>
       </main>
 
-      {/* FOOTER */}
-      <footer className="relative z-10 border-t border-white/10 bg-[#050505]/90 backdrop-blur-lg py-16 text-center mt-10">
-          <p className="text-[11px] text-gray-500 tracking-[5px] uppercase font-black hover:text-blue-500 transition-colors cursor-default hover:drop-shadow-[0_0_10px_rgba(37,99,235,0.8)]">
-            Tools By | VinzSky-shopID | software engineer | since 2026
-          </p>
+      <footer className="relative z-10 py-16 text-center mt-10" style={{borderTop:'1px solid rgba(255,255,255,.06)',background:'rgba(2,6,16,.75)',backdropFilter:'blur(20px)'}}>
+        <p className="text-[11px] text-gray-500 tracking-[5px] uppercase font-black hover:text-blue-400 transition-colors cursor-default">Tools By | VinzSky-shopID | software engineer | since 2026</p>
       </footer>
 
-      {/* MODAL PAKSA REVIEW TESTIMONI */}
-      {reviewData && (
-        <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in zoom-in duration-500 no-invert text-white">
-          <div className="bg-[#050505] w-full max-w-lg rounded-[3rem] p-8 border border-yellow-500/50 shadow-[0_0_100px_rgba(234,179,8,0.3)] text-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-yellow-400 to-orange-500"></div>
-            <Star size={48} className="mx-auto text-yellow-500 fill-yellow-500 mb-4 animate-pulse drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]" />
-            <h2 className="text-2xl font-black text-white mb-2 uppercase">Beri Ulasan VinzSky-shopID!</h2>
-            <p className="text-xs text-gray-400 mb-6 font-bold">Bagikan pengalaman Anda menggunakan <span className="text-blue-400">{reviewData.productName}</span></p>
-
-            <div className="bg-black p-4 rounded-2xl border border-white/5 mb-6 text-left shadow-inner">
-              <p className="text-[10px] text-gray-500 font-black uppercase mb-1 tracking-widest">Nama Pembeli:</p>
-              <p className="text-sm font-bold text-white uppercase">{reviewData.customerName}</p>
-            </div>
-
-            <div className="mb-6">
-              <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-3">Rating Anda</p>
-              <div className="flex justify-center gap-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} size={32} onClick={() => setRating(star)} className={`cursor-pointer transition-all hover:scale-110 ${star <= rating ? 'text-yellow-500 fill-yellow-500 drop-shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'text-gray-600'}`} />
-                ))}
-              </div>
-            </div>
-
-            <textarea placeholder="Tulis ulasan jujur Anda di sini..." value={reviewText} onChange={(e) => setReviewText(e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl p-4 text-sm outline-none focus:border-yellow-500 focus:shadow-[0_0_15px_rgba(234,179,8,0.3)] text-white h-32 resize-none mb-6 transition-all"></textarea>
-
-            <button onClick={submitReview} disabled={isSending} className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 py-4 rounded-[1.5rem] font-black text-lg text-white shadow-[0_10px_30px_rgba(234,179,8,0.4)] hover:scale-105 transition-all flex justify-center items-center gap-2">
-              {isSending ? <Clock className="animate-spin" size={20}/> : <Send size={20}/>} {isSending ? "MENGIRIM..." : "KIRIM REVIEW"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 🔥 MODAL DETAIL PRODUK GLOW (Z-[9999]) 🔥 */}
+      {/* ══════════════════════════════════════════════════════
+          MODAL PRODUK — presisi layout
+      ══════════════════════════════════════════════════════ */}
       {selectedProduct && (
-        <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300 no-invert text-white">
-          <div className="bg-[#050505] w-full max-w-4xl rounded-[3rem] overflow-hidden flex flex-col md:flex-row border border-blue-500/30 shadow-[0_0_100px_rgba(37,99,235,0.3)] relative">
-            
-            <div className="md:w-1/2 h-64 md:h-auto bg-black relative group/video">
-              <img src={selectedProduct.image} onError={(e)=>{e.target.onerror = null; e.target.src=selectedProduct.image.replace('.jpg','.png')}} className="w-full h-full object-cover opacity-60 transition-all duration-700" />
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black hidden md:block"></div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent md:hidden"></div>
-              
-              <div className="absolute inset-0 flex items-center justify-center">
-                 <button onClick={() => setDemoVideo(selectedProduct.videoUrl)} className="bg-black/50 hover:bg-blue-600/80 backdrop-blur-md border border-white/20 p-4 rounded-full text-white transition-all hover:scale-110 shadow-[0_0_30px_rgba(37,99,235,0.5)]">
-                    <PlayCircle size={40} className="fill-white/80 drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]"/>
-                 </button>
-              </div>
-              <p className="absolute bottom-4 left-0 w-full text-center text-[10px] font-bold uppercase tracking-widest text-white/70">Klik untuk tonton demo</p>
-            </div>
+        <div className="m-overlay">
+          <div className="m-box rounded-[2rem] shadow-[0_0_80px_rgba(37,99,235,.3)]"
+            style={{maxWidth:'960px',background:'rgba(5,9,25,.82)',backdropFilter:'blur(28px) saturate(170%)',border:'1px solid rgba(59,130,246,.25)',display:'flex',flexDirection:'column'}}>
+            <div className="flex flex-col md:flex-row flex-1 overflow-hidden rounded-[2rem]">
 
-            <div className="p-8 md:p-10 md:w-1/2 flex flex-col justify-center text-left relative">
-              <button onClick={handleCloseProductModal} className="absolute top-6 right-6 text-gray-500 hover:text-white bg-white/5 hover:bg-red-500/50 rounded-full p-2 transition-colors z-50"><X size={18}/></button>
-
-              <div className="flex items-center gap-3 mb-4">
-                <span className="bg-blue-600/20 text-blue-400 text-[10px] font-black px-3 py-1 rounded-full uppercase border border-blue-500/20 tracking-widest shadow-inner">AI Exclusive</span>
-                <span className="flex items-center gap-1 text-[10px] text-red-400 font-bold animate-pulse"><Users size={12}/> {Math.floor(Math.random() * 15) + 12} Orang melihat ini</span>
-              </div>
-              
-              <h2 className="text-3xl font-black mb-4 leading-tight text-white drop-shadow-md">{selectedProduct.name}</h2>
-              
-              {/* STOK BAR DI DALAM MODAL GLOW */}
-              <div className="mb-6 bg-black p-4 rounded-2xl border border-white/5 shadow-inner">
-                 <div className="flex justify-between text-xs text-red-400 font-bold mb-2 uppercase tracking-widest">
-                   <span className="flex items-center gap-1"><Flame size={14} className="drop-shadow-[0_0_5px_rgba(248,113,113,0.8)]"/> Sangat Diminati</span>
-                   <span>SISA {selectedProduct.stock} LISENSI</span>
-                 </div>
-                 <div className="w-full bg-gray-800 rounded-full h-2 shadow-inner overflow-hidden border border-white/5">
-                   <div className="bg-gradient-to-r from-red-600 to-orange-500 h-full rounded-full animate-pulse relative shadow-[0_0_10px_rgba(248,113,113,0.8)]" style={{ width: selectedProduct.stock + '%' }}>
-                      <div className="absolute top-0 right-0 w-10 h-full bg-white/30 blur-[2px]"></div>
-                   </div>
-                 </div>
+              {/* media panel */}
+              <div className="media-panel-fill flex-shrink-0 md:w-[48%] relative" style={{minHeight:'220px',maxHeight:typeof window!=='undefined'&&window.innerWidth>=768?'90vh':'260px'}}>
+                {selectedProduct.videoUrl && selectedProduct.videoUrl !== '' && selectedProduct.videoUrl !== '#'
+                  ? <video
+                      key={selectedProduct.videoUrl}
+                      src={selectedProduct.videoUrl}
+                      controls autoPlay playsInline loop
+                      preload="auto"
+                      style={{width:'100%',height:'100%',objectFit:'cover',display:'block',background:'#000'}}
+                      onError={e=>{e.target.style.display='none';const img=document.createElement('img');img.src=selectedProduct.image||'/produk1.jpg';img.style.cssText='width:100%;height:100%;object-fit:cover;position:absolute;inset:0;opacity:.7';e.target.parentNode.appendChild(img)}}
+                    />
+                  : <img src={selectedProduct.image} onError={e=>{e.target.onerror=null;e.target.src='/produk1.jpg'}} style={{width:'100%',height:'100%',objectFit:'cover',display:'block',opacity:.78}}/>
+                }
+                {/* fullscreen btn */}
+                {selectedProduct.videoUrl && selectedProduct.videoUrl !== '' && selectedProduct.videoUrl !== '#' && (
+                  <button onClick={()=>setFullscreenVideo(selectedProduct.videoUrl)}
+                    className="absolute bottom-4 right-4 z-30 flex items-center gap-2 text-white font-black text-[11px] uppercase tracking-widest rounded-xl px-3 py-2.5 transition-all hover:scale-105"
+                    style={{background:'rgba(0,0,0,.75)',backdropFilter:'blur(12px)',border:'1px solid rgba(255,255,255,.28)',boxShadow:'0 4px 20px rgba(0,0,0,.7)'}}>
+                    <Maximize2 size={14}/>Full Screen
+                  </button>
+                )}
+                <div className="absolute inset-y-0 right-0 w-10 pointer-events-none hidden md:block" style={{background:'linear-gradient(to right,transparent,rgba(5,9,25,.88))'}}/>
+                <div className="absolute inset-x-0 bottom-0 h-14 pointer-events-none md:hidden" style={{background:'linear-gradient(to top,rgba(5,9,25,1),transparent)'}}/>
               </div>
 
-              <p className="text-sm text-gray-400 mb-8 leading-relaxed">{selectedProduct.desc}</p>
-              
-              {selectedProduct.isLifetime ? (
-                <div className="bg-green-500/10 border border-green-500/30 p-4 rounded-2xl text-center mb-8 shadow-inner hover:border-green-500/50 transition-colors">
-                   <p className="text-green-400 font-black text-sm uppercase flex justify-center items-center gap-2 drop-shadow-[0_0_5px_rgba(34,197,94,0.8)]"><CheckCircle size={16}/> LISENSI LIFETIME</p>
-                   <p className="text-[10px] text-green-200 mt-2 opacity-80">Akses langsung ke G-Drive tanpa HWID Limit.</p>
+              {/* info panel */}
+              <div className="flex-1 mscroll p-5 md:p-7 flex flex-col relative" style={{maxHeight:'90vh'}}>
+                <button onClick={handleCloseProduct} className="absolute top-4 right-4 rounded-full p-2 z-50 transition-colors hover:bg-white/10" style={{background:'rgba(255,255,255,.07)'}}><X size={18}/></button>
+
+                <div className="flex items-center gap-3 mb-3 mt-1 md:mt-0 flex-wrap">
+                  <span className="text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest" style={{background:'rgba(37,99,235,.18)',color:'rgba(147,197,253,1)',border:'1px solid rgba(59,130,246,.25)'}}>AI Exclusive</span>
+                  <span className="flex items-center gap-1 text-[10px] font-bold animate-pulse"
+                    style={{color:'#f87171',textShadow:'0 0 6px rgba(248,113,113,.5)'}}>
+                    <Users size={12}/>{(viewCounts[selectedProduct.id]||0)+Math.floor(Math.random()*5)+8} Orang melihat ini
+                  </span>
                 </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3 mb-8">
-                  {DURATIONS.map(d => (
-                    <button key={d.code} onClick={()=>setSelectedDuration(d)} className={`p-3 rounded-xl text-[10px] font-black border transition-all duration-300 ${selectedDuration.code === d.code ? 'border-blue-500 bg-blue-600/20 text-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-105' : 'border-white/5 text-gray-500 hover:bg-white/10 hover:text-white'}`}>{d.label}</button>
-                  ))}
-                </div>
-              )}
-              
-              <div className="flex justify-between items-center mb-8 border-t border-white/5 pt-6">
-                  <span className="text-xs font-bold text-gray-500 italic">Harga Final:</span>
-                  <div className="text-right">
-                     {(isVipMember || hasExitPromo || selectedProduct.isFlashSale) && <p className="text-xs text-gray-500 line-through mb-1">Rp {(selectedProduct.originalPrice || selectedProduct.price).toLocaleString()}</p>}
-                     <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 drop-shadow-[0_0_10px_rgba(37,99,235,0.5)]">Rp {(calculateFinalPrice(selectedProduct.price) * selectedDuration.multiplier).toLocaleString()}</span>
-                  </div>
-              </div>
-              
-              <div className="flex gap-3">
-                <button onClick={() => executeAddToCart(selectedProduct, selectedDuration)} className="flex-1 bg-[#1e293b] hover:bg-blue-900/40 text-gray-300 hover:text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all border border-white/10 hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(37,99,235,0.3)]"><Plus size={18}/> Keranjang</button>
-                <button onClick={() => executeBeliSekarang(selectedProduct, selectedDuration)} className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-4 rounded-2xl flex items-center justify-center transition-all shadow-[0_10px_30px_rgba(37,99,235,0.5)] hover:scale-105">Beli Sekarang</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* 🔥 MODAL CHECKOUT GLOW (Z-[9999]) 🔥 */}
-      {showCheckout && (
-        <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300 no-invert text-white">
-          <div className="bg-[#050505] w-full max-w-md rounded-[2.5rem] p-6 md:p-8 border border-blue-500/30 shadow-[0_0_80px_rgba(37,99,235,0.3)] overflow-y-auto max-h-[90vh] custom-scrollbar relative">
-            <div className="flex justify-between items-center mb-6 sticky top-0 bg-[#050505] py-2 z-20 border-b border-white/5">
-              <h2 className="text-2xl font-black flex gap-3 items-center text-white drop-shadow-md"><ShieldCheck className="text-blue-500 drop-shadow-[0_0_10px_rgba(37,99,235,0.8)]"/> Checkout</h2>
-              <button onClick={() => setShowCheckout(false)} className="text-gray-500 hover:text-white hover:bg-red-500/50 bg-white/5 rounded-full p-2 transition-colors"><X size={18}/></button>
-            </div>
+                <h2 className="text-xl md:text-2xl font-black mb-3 leading-tight">{selectedProduct.name}</h2>
 
-            <div className="bg-black p-4 rounded-2xl border border-white/5 mb-6 max-h-[20vh] overflow-y-auto custom-scrollbar shadow-inner">
-              {cart.map((c, i) => (
-                <div key={i} className="flex justify-between items-center mb-3 border-b border-white/5 pb-3 last:border-0 last:pb-0 hover:bg-white/5 p-2 rounded-lg transition-colors">
-                  <div className="flex-1 pr-2">
-                    <p className="text-xs text-white font-bold truncate">{c.name}</p>
-                    <p className="text-[10px] text-blue-400 bg-blue-900/30 inline-block px-1.5 py-0.5 rounded mt-1 border border-blue-500/20">{c.durationLabel}</p>
+                {/* stock fire bar */}
+                <div className="mb-3 p-3 rounded-xl" style={{background:'rgba(0,0,0,.35)',border:'1px solid rgba(255,255,255,.06)'}}>
+                  <div className="flex justify-between text-[9px] font-bold mb-2 uppercase tracking-widest">
+                    <span className="flex items-center gap-1 text-orange-400" style={{textShadow:'0 0 6px rgba(249,115,22,.7)'}}><Flame size={12} style={{filter:'drop-shadow(0 0 3px #f97316)'}}/>Sangat Diminati</span>
+                    <span className="text-red-400" style={{textShadow:'0 0 6px rgba(239,68,68,.5)'}}>SISA {selectedProduct.stock} LISENSI</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <p className="text-sm font-black text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]">Rp {c.finalPrice.toLocaleString()}</p>
-                    <button onClick={() => removeFromCart(i)} className="text-red-500/50 hover:text-red-400 transition-colors" title="Batal Beli Produk Ini"><X size={16}/></button>
+                  <div className="w-full rounded-full h-2.5 overflow-hidden" style={{background:'rgba(255,255,255,.07)'}}>
+                    <div className="fire-bar h-full rounded-full" style={{width:(selectedProduct.stock||99)+'%'}}/>
                   </div>
                 </div>
-              ))}
-            </div>
 
-            <div className="flex justify-between items-center mb-6 bg-gradient-to-r from-blue-900/30 to-transparent p-5 rounded-2xl border border-blue-500/20 shadow-lg">
-                <span className="text-sm text-gray-300 font-bold uppercase tracking-widest">Total Tagihan</span>
-                <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 drop-shadow-[0_0_10px_rgba(37,99,235,0.5)]">Rp {cart.reduce((total, item) => total + item.finalPrice, 0).toLocaleString('id-ID')}</span>
-            </div>
+                {/* desc */}
+                <div className="mb-3 p-3 rounded-xl" style={{background:'rgba(0,0,0,.25)',border:'1px solid rgba(255,255,255,.05)'}}>
+                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1.5">Deskripsi Produk</p>
+                  <p className="text-xs text-gray-300 leading-relaxed">{selectedProduct.desc}</p>
+                  {selectedProduct.category && <p className="text-[9px] text-gray-500 mt-2 font-bold">Kategori: <span className="text-blue-400">{selectedProduct.category}</span></p>}
+                </div>
 
-            <div className="space-y-4 mb-6">
-              <div className="relative group">
-                <UserCircle size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
-                <input placeholder="Nama Lengkap Anda" className="w-full bg-black border border-white/10 p-4 pl-12 rounded-2xl outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(37,99,235,0.2)] font-bold text-sm text-white transition-all shadow-inner" onChange={e=>setCustomerName(e.target.value)} />
-              </div>
-              <div className="relative group">
-                <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
-                <input placeholder="WhatsApp Aktif" type="number" className="w-full bg-black border border-white/10 p-4 pl-12 rounded-2xl outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(37,99,235,0.2)] font-bold text-sm text-white transition-all shadow-inner" onChange={e=>setCustomerWA(e.target.value)} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-6">
-                <button onClick={() => setPayMethod('bank')} className={`font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 border ${payMethod === 'bank' ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.5)] scale-105' : 'bg-[#1e293b] text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'}`}><CreditCard size={18}/> Transfer BCA</button>
-                <button onClick={() => setPayMethod('qris')} className={`font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 border ${payMethod === 'qris' ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.5)] scale-105' : 'bg-[#1e293b] text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'}`}><QrCode size={18}/> QRIS</button>
-            </div>
-
-            <div className="bg-black rounded-2xl p-6 mb-6 border border-white/5 text-center shadow-inner relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 rounded-full blur-[50px]"></div>
-                {payMethod === 'bank' ? (
-                  <div className="relative z-10 animate-in fade-in zoom-in duration-300">
-                    <p className="text-xs text-gray-400 mb-2 font-bold uppercase tracking-widest">Transfer ke BCA</p>
-                    <p className="text-3xl font-black text-white tracking-widest mb-1 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">865-073-8960</p>
-                    <p className="text-sm text-blue-400 font-black uppercase bg-blue-900/30 py-1 px-3 rounded-full inline-block mt-2 border border-blue-500/20">A/N MOH BASHORY</p>
+                {/* tier */}
+                {selectedProduct.isLifetime ? (
+                  <div className="p-3 rounded-xl text-center mb-3" style={{background:'rgba(0,80,40,.20)',border:'1px solid rgba(34,197,94,.30)'}}>
+                    <p className="text-green-400 font-black text-sm uppercase flex justify-center items-center gap-2"><CheckCircle size={16}/>LISENSI LIFETIME</p>
                   </div>
                 ) : (
-                  <div className="relative z-10 animate-in fade-in zoom-in duration-300">
-                    <p className="text-[10px] text-gray-400 mb-4 font-black uppercase tracking-widest">Scan QRIS VinzSky-shopID</p>
-                    <img src="/qris.png" className="w-40 h-40 object-contain mx-auto bg-white p-2 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-105 transition-transform" alt="QRIS" />
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {DURATIONS.map(d=>(
+                      <button key={d.code} onClick={()=>setSelectedDuration(d)}
+                        className={`p-2.5 rounded-xl text-[10px] font-black border transition-all flex flex-col items-center gap-1 ${selectedDuration.code===d.code?`${d.border} ${d.bg} ${d.color} scale-105`:'text-gray-500 hover:text-white'}`}
+                        style={selectedDuration.code!==d.code?{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.07)'}:{}}>
+                        <span className="flex items-center gap-1"><Crown size={11}/>{d.tierName}</span>
+                        <span>{d.label}</span>
+                      </button>
+                    ))}
                   </div>
                 )}
-            </div>
 
-            <div className="mb-6 bg-black border border-white/5 p-4 rounded-2xl group hover:border-blue-500/50 transition-colors shadow-inner">
-              <label className="flex items-center justify-center w-full cursor-pointer">
-                  <div className="flex items-center gap-3 text-sm text-gray-400 group-hover:text-blue-400 transition-colors font-bold">
-                    <Upload size={20} className="group-hover:-translate-y-1 transition-transform drop-shadow-[0_0_5px_rgba(37,99,235,0.5)]" />
-                    {buktiBayar ? <span className="text-emerald-400 truncate max-w-[200px]">{buktiBayar.name}</span> : 'Upload Bukti Bayar'}
+                {/* price neon */}
+                <div className="flex justify-between items-center mb-4 pt-3" style={{borderTop:'1px solid rgba(255,255,255,.07)'}}>
+                  <span className="text-xs font-bold text-gray-500 italic">Harga Final:</span>
+                  <div className="text-right">
+                    {(isVipMember||hasExitPromo||selectedProduct.isFlashSale||(selectedProduct.discountAktif&&selectedProduct.discountPersen>0)) && (
+                      <p className="text-xs text-gray-500 line-through mb-1">Rp {(selectedProduct.originalPrice||selectedProduct.price).toLocaleString()}</p>
+                    )}
+                    <span className={`text-2xl md:text-3xl font-black ${hasExitPromo
+                      ?'text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-400 to-yellow-400 animate-pulse'
+                      :'fire-price text-blue-300'}`}
+                      style={!hasExitPromo?{}:{}}>
+                      Rp {(calcPrice(selectedProduct.price, selectedProduct)*selectedDuration.multiplier).toLocaleString()}
+                    </span>
                   </div>
-                  <input type="file" accept="image/*" className="hidden" onChange={e=>setBuktiBayar(e.target.files[0])} />
-              </label>
-            </div>
-            
-            <button onClick={kirimKeTelegram} disabled={isSending || cart.length === 0} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 py-4 rounded-2xl font-black text-lg text-white shadow-[0_10px_30px_rgba(37,99,235,0.5)] hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2 relative z-10">
-              {isSending ? <Clock className="animate-spin" size={20}/> : <Send size={20}/>} {isSending ? "Processing..." : "KONFIRMASI BAYAR"}
-            </button>
+                </div>
 
-            <button onClick={kosongkanKeranjang} className="w-full mt-6 bg-transparent border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">
-               <Trash2 size={16}/> Kosongkan Semua Keranjang
-            </button>
+                <div className="flex gap-3 mt-auto">
+                  <button onClick={()=>handleProductAction(selectedProduct,selectedDuration,'cart')} disabled={isCheckingTrial} className="btn-cart disabled:opacity-50">
+                    {isCheckingTrial?<Clock className="animate-spin" size={16}/>:<ShoppingCart size={16}/>}
+                    <span className="font-black text-sm">Keranjang</span>
+                  </button>
+                  <button onClick={()=>handleProductAction(selectedProduct,selectedDuration,'buy')} disabled={isCheckingTrial} className="btn-buy disabled:opacity-50">
+                    {isCheckingTrial?'Memproses...':'Beli Sekarang'}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* 🔥 MODAL DATA LISENSI HWID GLOW (Z-[9999]) 🔥 */}
-      {activeMenu === 'hwid' && (
-        <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300 no-invert text-white">
-          <div className="bg-[#050505] w-full max-w-2xl rounded-[3rem] p-8 border border-white/10 shadow-[0_0_100px_rgba(234,179,8,0.2)] animate-in zoom-in-95 duration-300">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-black flex gap-3 items-center text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]"><Key /> Data Lisensi HWID</h2>
-              <X className="cursor-pointer text-gray-500 hover:text-white bg-white/5 hover:bg-red-500/50 p-2 rounded-full transition-colors" onClick={()=>setActiveMenu(null)} />
+      {/* ══════════════════════════════════════════════════════
+          CHECKOUT MODAL
+      ══════════════════════════════════════════════════════ */}
+      {showCheckout && (
+        <div className="m-overlay">
+          <div className="m-box w-full max-w-md rounded-[2rem] shadow-[0_0_80px_rgba(37,99,235,.22)]"
+            style={{background:'rgba(5,9,25,.82)',backdropFilter:'blur(28px) saturate(170%)',border:'1px solid rgba(59,130,246,.22)'}}>
+            <div className="flex justify-between items-center p-5 pb-4 flex-shrink-0" style={{borderBottom:'1px solid rgba(255,255,255,.07)'}}>
+              <h2 className="text-xl font-black flex gap-3 items-center"><ShieldCheck className="text-blue-500"/>Checkout</h2>
+              <button onClick={handleCloseCheckout} className="rounded-full p-2 transition-colors hover:bg-white/10" style={{background:'rgba(255,255,255,.06)'}}><X size={18}/></button>
             </div>
-            <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-              {historyData.length === 0 ? <div className="text-center py-20"><Key size={48} className="mx-auto text-gray-800 mb-4"/><p className="text-gray-600 font-black italic">BELUM ADA DATA LISENSI</p></div> : 
-                historyData.map(trx => (
-                  <div key={trx.id} className="bg-white/5 p-6 rounded-[2rem] border border-white/5 hover:border-yellow-500/50 transition-colors group shadow-lg">
-                    <div className="bg-black p-5 rounded-2xl border border-yellow-500/20 mb-5 text-center shadow-inner">
-                      <p className="text-[10px] text-gray-500 font-bold mb-2 uppercase tracking-widest">Master HWID Device Anda:</p>
-                      <code className="text-3xl font-black text-white drop-shadow-md tracking-wider">{trx.masterHwid}</code>
+            <div className="mscroll p-5 pt-4" style={{maxHeight:'calc(92vh - 68px)'}}>
+              <p className="text-xs text-blue-400 italic mb-4 text-center font-bold">"Langkah terakhir menuju produktivitas tanpa batas. Selesaikan sekarang Bosku!"</p>
+              <div className="p-4 rounded-2xl mb-4" style={{background:'rgba(0,0,0,.32)',border:'1px solid rgba(255,255,255,.06)'}}>
+                {cart.map((c,i)=>(
+                  <div key={i} className="flex justify-between items-center mb-3 pb-3 p-2 rounded-lg hover:bg-white/5 transition-colors last:mb-0 last:pb-0 last:border-0" style={{borderBottom:'1px solid rgba(255,255,255,.05)'}}>
+                    <div className="flex-1 pr-2">
+                      <p className="text-xs text-white font-bold truncate">{c.name}</p>
+                      <p className={`text-[10px] ${c.color} ${c.bg} border ${c.border} inline-flex items-center gap-1 px-1.5 py-0.5 rounded mt-1`}><Crown size={10}/>{c.tierName} - {c.durationLabel}</p>
                     </div>
-                    {trx.hwidItems.map((hw, idx) => (
-                      <div key={idx} className={`flex justify-between items-center p-4 rounded-2xl bg-black border border-white/5 mb-2 hover:bg-black/60 transition-colors ${hw.isSuccess ? 'border-green-500/50 shadow-[0_0_20px_rgba(34,197,94,0.2)]' : ''}`}>
-                        <div className="flex flex-col"><span className="text-sm font-black text-gray-200">{hw.productName}</span><span className="text-[10px] text-gray-500 bg-white/5 w-fit px-2 py-0.5 rounded mt-1 border border-white/10">{hw.duration}</span></div>
-                        {hw.isLifetime ? (
-                           <div className="text-right"><p className="text-[8px] text-green-500 font-black uppercase mb-1 tracking-widest drop-shadow-[0_0_5px_rgba(34,197,94,0.8)]">STATUS: AKTIF</p><code className="text-xs font-black text-green-400 bg-green-500/10 px-3 py-1 rounded-lg border border-green-500/50 shadow-inner">LIFETIME (TANPA KEY)</code></div>
-                        ) : hw.isSuccess ? (
-                           <div className="text-right"><p className="text-[8px] text-green-500 font-black uppercase mb-1 tracking-widest drop-shadow-[0_0_5px_rgba(34,197,94,0.8)]">STATUS: AKTIF</p><code className="text-sm font-black text-green-400 bg-green-500/10 px-3 py-1 rounded-lg border border-green-500/50 shadow-inner">{hw.keyStatus}</code></div> 
-                        ) : (
-                           <button onClick={()=>handleKlaimKey(trx.id, idx)} className="text-[10px] bg-yellow-600 hover:bg-yellow-500 text-black px-4 py-2 rounded-xl font-black uppercase shadow-[0_5px_20px_rgba(202,138,4,0.5)] hover:scale-105 transition-all">Klaim Key</button>
-                        )}
+                    <div className="flex items-center gap-3">
+                      <p className="text-sm font-black text-emerald-400" style={{textShadow:'0 0 8px rgba(52,211,153,.4)'}}>Rp {c.finalPrice.toLocaleString()}</p>
+                      <button onClick={()=>removeFromCart(i)} className="text-red-500/50 hover:text-red-400 transition-colors"><X size={16}/></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between items-center mb-5 p-4 rounded-2xl" style={{background:'linear-gradient(135deg,rgba(37,99,235,.15),rgba(0,0,0,.1))',border:'1px solid rgba(59,130,246,.18)'}}>
+                <span className="text-sm text-gray-300 font-bold uppercase tracking-widest">Total Tagihan</span>
+                <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-emerald-300">Rp {cart.reduce((s,i)=>s+i.finalPrice,0).toLocaleString('id-ID')}</span>
+              </div>
+              <div className="space-y-3 mb-5">
+                {[
+                  {icon:<UserCircle size={15}/>,ph:'Nama Lengkap Anda',val:customerName,set:setCustomerName,type:'text'},
+                  {icon:<Phone size={15}/>,ph:'WhatsApp Aktif',val:customerWA,set:setCustomerWA,type:'tel'},
+                  {icon:<Mail size={15}/>,ph:'Email Aktif',val:customerEmail,set:setCustomerEmail,type:'email'},
+                ].map((f,i)=>(
+                  <div key={i} className="relative">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">{f.icon}</div>
+                    <input placeholder={f.ph} value={f.val} onChange={e=>f.set(e.target.value)} type={f.type} className="inp"/>
+                  </div>
+                ))}
+              </div>
+              {cart.reduce((s,i)=>s+i.finalPrice,0)>0 && (
+                <>
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    {[{key:'midtrans',icon:<Landmark size={20}/>,label:'QRIS / VA / E-Wallet'},{key:'paypal',icon:<Wallet size={20} className="text-blue-400"/>,label:'PayPal'}].map(pm=>(
+                      <button key={pm.key} onClick={()=>setPayMethod(pm.key)}
+                        className={`font-bold py-3 px-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all text-[10px] uppercase tracking-widest ${payMethod===pm.key?'bg-blue-600 text-white border border-blue-400 scale-105':'text-gray-400 hover:text-white'}`}
+                        style={payMethod!==pm.key?{background:'rgba(30,41,59,.55)',border:'1px solid rgba(255,255,255,.07)'}:{}}>
+                        {pm.icon}{pm.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="rounded-2xl p-5 mb-4 text-center" style={{background:'rgba(0,0,0,.30)',border:'1px solid rgba(255,255,255,.06)'}}>
+                    {payMethod==='midtrans' && (
+                      <div className="flex flex-col items-center">
+                        <ShieldCheck size={36} className="text-emerald-400 mb-3" style={{filter:'drop-shadow(0 0 8px rgba(52,211,153,.5))'}}/> 
+                        <p className="text-[10px] text-gray-400 mb-2 font-black uppercase tracking-widest">Secure Auto-Payment</p>
+                        <p className="text-xs text-gray-300 leading-relaxed px-2">QRIS, Virtual Account Bank (BCA, Mandiri, dll), atau E-Wallet pilihan Anda.</p>
+                      </div>
+                    )}
+                    {payMethod==='paypal' && (
+                      <div className="flex flex-col items-center">
+                        <Wallet size={36} className="text-blue-400 mb-3" style={{filter:'drop-shadow(0 0 8px rgba(96,165,250,.5))'}}/> 
+                        <p className="text-[10px] text-gray-400 mb-2 font-black uppercase tracking-widest">Send Payment To:</p>
+                        <p className="text-lg font-black tracking-widest mb-4">@moh.bashory1992</p>
+                        <a href={`https://paypal.me/mohbashory1992/${Math.ceil(cart.reduce((s,i)=>s+i.finalPrice,0)/15500)}USD`} target="_blank" className="bg-[#0070ba] hover:bg-[#003087] text-white text-xs font-black py-2.5 px-6 rounded-full transition-colors flex items-center gap-2">Buka Aplikasi PayPal</a>
+                        <p className="text-[8px] text-gray-500 mt-4 italic">*Screenshot bukti transfer setelah bayar</p>
+                      </div>
+                    )}
+                  </div>
+                  {payMethod==='paypal' && (
+                    <div className="mb-4 p-4 rounded-2xl group" style={{background:'rgba(0,0,0,.25)',border:'1px solid rgba(255,255,255,.07)'}}>
+                      <label htmlFor="file-upload" className="flex items-center justify-center cursor-pointer">
+                        <div className="flex items-center gap-3 text-sm text-gray-400 group-hover:text-blue-400 transition-colors font-bold">
+                          <Upload size={20}/>{buktiBayar?<span className="text-emerald-400 truncate max-w-[200px]">{buktiBayar.name}</span>:'Upload Bukti Bayar'}
+                        </div>
+                      </label>
+                      <input id="file-upload" type="file" accept="image/*" className="hidden" onChange={e=>setBuktiBayar(e.target.files[0])}/>
+                    </div>
+                  )}
+                </>
+              )}
+              <button onClick={eksekusiPembayaran} disabled={isSending||cart.length===0}
+                className="w-full py-4 rounded-2xl font-black text-lg text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:scale-[1.02]"
+                style={{background:'linear-gradient(135deg,#1d4ed8,#4f46e5)',boxShadow:'0 0 20px rgba(37,99,235,.5), 0 0 40px rgba(79,70,229,.25)'}}>
+                {isSending?<Clock className="animate-spin" size={20}/>:<Send size={20}/>}
+                {isSending?'Processing...':(cart.reduce((s,i)=>s+i.finalPrice,0)>0?(payMethod==='midtrans'?'BAYAR OTOMATIS SEKARANG':'KONFIRMASI PAYPAL'):'KLAIM TRIAL GRATIS')}
+              </button>
+              <button onClick={clearCart} className="w-full mt-4 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 text-red-400 hover:text-red-300 transition-all" style={{background:'transparent',border:'1px solid rgba(220,38,38,.22)'}}>
+                <Trash2 size={16}/>Kosongkan Semua Keranjang
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════
+          HWID MODAL
+      ══════════════════════════════════════════════════════ */}
+      {activeMenu==='hwid' && (
+        <div className="m-overlay">
+          <div className="m-box w-full max-w-2xl rounded-[2.5rem]" style={{background:'rgba(5,9,25,.82)',backdropFilter:'blur(28px) saturate(170%)',border:'1px solid rgba(255,255,255,.08)',boxShadow:'0 0 60px rgba(234,179,8,.12)'}}>
+            <div className="flex justify-between items-center p-6 pb-4 flex-shrink-0" style={{borderBottom:'1px solid rgba(255,255,255,.07)'}}>
+              <h2 className="text-2xl font-black flex gap-3 items-center text-yellow-400"><Key/>Data Lisensi HWID</h2>
+              <button className="rounded-full p-2 hover:bg-white/10" style={{background:'rgba(255,255,255,.06)'}} onClick={()=>setActiveMenu(null)}><X size={18}/></button>
+            </div>
+            <div className="mscroll p-6 space-y-6" style={{maxHeight:'calc(92vh - 72px)'}}>
+              {historyData.length===0
+                ? <div className="text-center py-20"><Key size={48} className="mx-auto text-gray-800 mb-4"/><p className="text-gray-600 font-black italic">BELUM ADA DATA LISENSI</p></div>
+                : historyData.map(trx=>(
+                  <div key={trx.id} className="p-6 rounded-[2rem]" style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.06)'}}>
+                    <div className="p-5 rounded-2xl text-center mb-5" style={{background:'rgba(0,0,0,.40)',border:'1px solid rgba(234,179,8,.18)'}}>
+                      <p className="text-[10px] text-gray-500 font-bold mb-2 uppercase tracking-widest">Master HWID Device:</p>
+                      <code className="text-2xl md:text-3xl font-black tracking-wider">{trx.masterHwid}</code>
+                    </div>
+                    {trx.hwidItems.map((hw,idx)=>(
+                      <div key={idx} className="flex justify-between items-center p-4 rounded-2xl mb-2"
+                        style={{background:'rgba(0,0,0,.28)',border:`1px solid ${hw.isSuccess?'rgba(34,197,94,.32)':'rgba(255,255,255,.06)'}`}}>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-gray-200">{hw.productName}</span>
+                          <span className={`text-[10px] ${hw.color||'text-gray-500'} ${hw.bg||''} border ${hw.border||'border-white/10'} w-fit px-2 py-0.5 rounded mt-1 flex items-center gap-1`}><Crown size={10}/>{hw.tierName||'Standard'} - {hw.duration}</span>
+                        </div>
+                        {hw.isLifetime
+                          ? <div className="text-right"><p className="text-[8px] text-green-400 font-black uppercase mb-1">AKTIF</p><code className="text-xs font-black text-green-400 px-3 py-1 rounded-lg" style={{background:'rgba(34,197,94,.10)',border:'1px solid rgba(34,197,94,.30)'}}>LIFETIME</code></div>
+                          : hw.isSuccess
+                            ? <div className="text-right"><p className="text-[8px] text-green-400 font-black uppercase mb-1">AKTIF</p><code className="text-sm font-black text-green-400 px-3 py-1 rounded-lg" style={{background:'rgba(34,197,94,.10)',border:'1px solid rgba(34,197,94,.30)'}}>{hw.keyStatus}</code></div>
+                            : <button onClick={()=>handleKlaimKey(trx.id,idx)} className="text-[10px] bg-yellow-600 hover:bg-yellow-500 text-black px-4 py-2 rounded-xl font-black uppercase hover:scale-105 transition-all">Klaim Key</button>
+                        }
                       </div>
                     ))}
                   </div>
@@ -721,109 +1451,177 @@ export default function Home() {
         </div>
       )}
 
-      {/* 🔥 MODAL G-DRIVE & HISTORY GLOW (Z-[9999]) 🔥 */}
-      {activeMenu === 'history' && (
-        <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300 no-invert text-white">
-            <div className="bg-[#050505] w-full max-w-2xl rounded-[3rem] p-8 border border-white/10 shadow-[0_0_100px_rgba(16,185,129,0.2)] animate-in zoom-in-95 duration-300">
-                <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-2xl font-black flex gap-3 text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.8)]"><History /> G-Drive & Riwayat</h2>
-                    <X className="cursor-pointer text-gray-500 hover:text-white bg-white/5 hover:bg-red-500/50 p-2 rounded-full transition-colors" onClick={()=>setActiveMenu(null)} />
-                </div>
-                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                    {historyData.length === 0 ? <div className="text-center py-20"><Download size={48} className="mx-auto text-gray-800 mb-4"/><p className="text-gray-600 font-black italic">BELUM ADA RIWAYAT TRANSAKSI</p></div> : 
-                      historyData.map(trx => (
-                        <div key={trx.id} className="bg-white/5 p-6 rounded-[2rem] border border-white/5 hover:border-emerald-500/50 transition-colors shadow-lg">
-                            <div className="flex justify-between text-[10px] text-gray-500 mb-4 font-bold uppercase tracking-widest bg-black p-2 rounded-lg border border-white/5"><span>ID: {trx.id}</span><span>{trx.date}</span></div>
-                            {trx.hwidItems.map((h, i) => (
-                                <div key={i} className="mb-4 last:mb-0 border-t border-white/5 pt-4">
-                                  <p className="font-black text-sm mb-3 text-gray-200">{h.productName}</p>
-                                  <div className="flex flex-col gap-2 mb-3">
-                                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Link Akses G-Drive:</label>
-                                      <div className="flex gap-2">
-                                        <input type="text" readOnly value={h.zipLink} className="flex-1 bg-black border border-white/10 rounded-xl p-3 text-xs text-blue-400 outline-none font-mono text-white shadow-inner focus:border-blue-500 focus:shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all" />
-                                        <button onClick={() => { if(typeof window !== 'undefined'){navigator.clipboard.writeText(h.zipLink); alert('Link G-Drive Berhasil Disalin!')} }} className="bg-blue-600 hover:bg-blue-500 text-white px-4 rounded-xl text-[10px] font-black transition-all flex items-center gap-1 shadow-[0_0_15px_rgba(37,99,235,0.5)] hover:scale-105"><Copy size={12}/> COPY</button>
-                                      </div>
-                                  </div>
-                                  <div className="flex gap-3">
-                                    <a href={h.zipLink} target="_blank" className="flex-1 bg-blue-600/10 text-blue-400 p-3 rounded-xl text-center text-[10px] font-black border border-blue-500/50 uppercase hover:bg-blue-600 hover:text-white hover:scale-105 transition-all shadow-[0_0_15px_rgba(37,99,235,0.2)] flex items-center justify-center gap-2"><HardDrive size={14}/> BUKA LINK G-DRIVE</a>
-                                    <a href={h.pdfLink} target="_blank" className="flex-1 bg-purple-600/10 text-purple-400 p-3 rounded-xl text-center text-[10px] font-black border border-purple-500/50 uppercase hover:bg-purple-600 hover:text-white hover:scale-105 transition-all shadow-[0_0_15px_rgba(168,85,247,0.2)] flex items-center justify-center gap-2"><FileText size={14}/> Panduan PDF</a>
-                                  </div>
-                                </div>
-                            ))}
-                        </div>
-                    ))}
-                </div>
-                {historyData.length > 0 && <button onClick={bersihkanRiwayat} className="w-full mt-8 text-gray-600 bg-white/5 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50 p-3 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-transparent"><Trash2 size={12}/> Bersihkan Data Perangkat</button>}
+      {/* ══════════════════════════════════════════════════════
+          HISTORY MODAL
+      ══════════════════════════════════════════════════════ */}
+      {activeMenu==='history' && (
+        <div className="m-overlay">
+          <div className="m-box w-full max-w-2xl rounded-[2.5rem]" style={{background:'rgba(5,9,25,.82)',backdropFilter:'blur(28px) saturate(170%)',border:'1px solid rgba(255,255,255,.08)',boxShadow:'0 0 60px rgba(16,185,129,.1)'}}>
+            <div className="flex justify-between items-center p-6 pb-4 flex-shrink-0" style={{borderBottom:'1px solid rgba(255,255,255,.07)'}}>
+              <h2 className="text-2xl font-black flex gap-3 text-emerald-400"><History/>G-Drive & Riwayat</h2>
+              <button className="rounded-full p-2 hover:bg-white/10" style={{background:'rgba(255,255,255,.06)'}} onClick={()=>setActiveMenu(null)}><X size={18}/></button>
             </div>
-        </div>
-      )}
-
-      {/* SPLIT BILL / RECEIPT GLOW (Z-[9999]) */}
-      {showReceipt && (
-        <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300 no-invert">
-            <canvas ref={receiptCanvasRef} className="absolute inset-0 z-0 pointer-events-none" />
-            <div className="bg-white text-black w-full max-w-sm rounded-[2rem] p-8 font-mono shadow-[0_0_100px_rgba(255,255,255,0.3)] relative z-10 animate-in zoom-in-95 duration-500">
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-green-500 text-white p-3 rounded-full border-4 border-[#0a0f1a] shadow-[0_0_20px_rgba(34,197,94,0.6)]">
-                  <Check size={32} strokeWidth={3} />
-                </div>
-                <div className="text-center mb-6 border-b-2 border-dashed border-gray-300 pb-6 pt-6">
-                    <h3 className="text-2xl font-black uppercase tracking-tighter text-black">VINZSKY-SHOPID</h3>
-                    <p className="text-[10px] text-gray-500 mt-1">{showReceipt.date}</p>
-                    <p className="text-[10px] text-gray-400 mt-1 font-bold bg-gray-100 inline-block px-2 py-0.5 rounded">ID: {showReceipt.id}</p>
-                </div>
-                <div className="space-y-3 mb-6 text-xs font-bold border-b border-gray-200 pb-6">
-                    {showReceipt.hwidItems.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-end bg-gray-50 p-2 rounded-lg">
-                        <div className="flex flex-col"><span className="truncate max-w-[150px] text-black">{item.productName}</span><span className="text-[9px] text-gray-500">{item.duration}</span></div>
-                      </div>
-                    ))}
-                    <div className="pt-4 flex justify-between items-center font-black text-sm mt-2 text-blue-600 bg-blue-50 p-3 rounded-xl border border-blue-100">
-                      <span>TOTAL BAYAR</span><span>Rp {showReceipt.total.toLocaleString()}</span>
+            <div className="mscroll p-6 space-y-4" style={{maxHeight:'calc(92vh - 72px)'}}>
+              {historyData.length===0
+                ? <div className="text-center py-20"><Download size={48} className="mx-auto text-gray-800 mb-4"/><p className="text-gray-600 font-black italic">BELUM ADA RIWAYAT TRANSAKSI</p></div>
+                : historyData.map(trx=>(
+                  <div key={trx.id} className="p-6 rounded-[2rem]" style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.06)'}}>
+                    <div className="flex justify-between text-[10px] text-gray-500 mb-4 font-bold uppercase tracking-widest p-2 rounded-lg" style={{background:'rgba(0,0,0,.28)'}}>
+                      <span>ID: {trx.id}</span><span>{trx.date}</span>
                     </div>
-                </div>
-                <div className="bg-gray-900 p-5 rounded-2xl text-center shadow-inner mb-6 relative overflow-hidden">
-                    <p className="text-[9px] font-black text-gray-400 mb-2 uppercase tracking-widest">Master HWID PC Anda:</p>
-                    <code className="text-lg font-black text-white uppercase tracking-widest drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">{showReceipt.masterHwid}</code>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={cetakStruk} className="flex-1 bg-black hover:bg-gray-800 text-white py-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition-colors shadow-lg"><Printer size={14}/> PDF</button>
-                  <button onClick={() => setShowReceipt(null)} className="flex-1 bg-gray-200 hover:bg-gray-300 text-black py-4 rounded-xl font-black text-xs transition-colors shadow-inner">SELESAI</button>
-                </div>
+                    {trx.hwidItems.map((h,i)=>{
+                      const liveProduct = allProducts.find(p => p.name === h.productName || p.id === h.id)
+                      const zipUrl = safeLink(liveProduct?.zipLink) || safeLink(h.zipLink) || null
+                      const pdfUrl = safeLink(liveProduct?.pdfLink) || safeLink(h.pdfLink) || null
+                      return (
+                        <div key={i} className="mb-4 pt-4" style={{borderTop:'1px solid rgba(255,255,255,.06)'}}>
+                          <p className="font-black text-sm mb-3 text-gray-200">{h.productName}</p>
+                          {zipUrl ? (
+                            <>
+                              <div className="flex gap-2 mb-3">
+                                <input readOnly value={zipUrl} className="flex-1 p-3 text-xs text-blue-400 outline-none font-mono rounded-xl" style={{background:'rgba(0,0,0,.34)',border:'1px solid rgba(255,255,255,.08)'}}/>
+                                <button onClick={()=>{navigator.clipboard.writeText(zipUrl);alert('Link Disalin!')}} className="bg-blue-600 hover:bg-blue-500 text-white px-4 rounded-xl text-[10px] font-black flex items-center gap-1 hover:scale-105 transition-all"><Copy size={12}/>COPY</button>
+                              </div>
+                              <div className="flex gap-3">
+                                <a href={zipUrl} target="_blank" rel="noopener noreferrer" className="flex-1 p-3 rounded-xl text-center text-[10px] font-black uppercase hover:scale-105 transition-all flex items-center justify-center gap-2 text-blue-400 hover:text-white hover:bg-blue-600" style={{background:'rgba(37,99,235,.12)',border:'1px solid rgba(59,130,246,.38)'}}><HardDrive size={14}/>BUKA G-DRIVE</a>
+                                {pdfUrl
+                                  ? <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="flex-1 p-3 rounded-xl text-center text-[10px] font-black uppercase hover:scale-105 transition-all flex items-center justify-center gap-2 text-purple-400 hover:text-white hover:bg-purple-600" style={{background:'rgba(168,85,247,.12)',border:'1px solid rgba(168,85,247,.38)'}}><FileText size={14}/>PDF PANDUAN</a>
+                                  : <div className="flex-1 p-3 rounded-xl text-center text-[10px] font-black uppercase flex items-center justify-center gap-2 text-gray-600 cursor-not-allowed" style={{background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.07)'}}><FileText size={14}/>PDF (Belum Ada)</div>
+                                }
+                              </div>
+                            </>
+                          ) : (
+                            <div className="p-4 rounded-xl text-center" style={{background:'rgba(255,255,255,.03)',border:'1px dashed rgba(255,255,255,.10)'}}>
+                              <p className="text-[11px] text-gray-500 font-bold">⏳ Link G-Drive belum tersedia</p>
+                              <p className="text-[9px] text-gray-600 mt-1">Admin akan kirimkan link via WhatsApp setelah verifikasi.</p>
+                              {pdfUrl && <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-3 text-[10px] font-black text-purple-400 hover:text-purple-300 transition-colors"><FileText size={12}/>Download PDF Panduan</a>}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ))
+              }
+              {historyData.length>0 && (
+                <button onClick={()=>{if(window.confirm('Hapus semua riwayat?')){setHistoryData([]);setIsVipMember(false);setVipTierInfo(null);localStorage.removeItem('vinzsky_history')}}}
+                  className="w-full mt-4 p-3 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 text-gray-600 hover:text-red-400 transition-all"
+                  style={{background:'rgba(255,255,255,.03)'}}>
+                  <Trash2 size={12}/>Bersihkan Data Perangkat
+                </button>
+              )}
             </div>
+          </div>
         </div>
       )}
 
-      {/* 🔥 FAB CHAT (HILANG OTOMATIS SAAT ADA MODAL APAPUN YANG TERBUKA BIAR GAK NGALANGIN) 🔥 */}
-      {!isAnyModalOpen && (
-        <div className="fixed bottom-6 right-6 z-[500] flex flex-col items-end no-invert">
-          {isChatOpen && (
-            <div className="mb-4 w-80 sm:w-96 bg-[#0a0f1a] border border-blue-500/50 rounded-2xl shadow-[0_0_50px_rgba(37,99,235,0.4)] flex flex-col overflow-hidden text-white animate-in slide-in-from-bottom-10 fade-in duration-300">
-              <div className="bg-gradient-to-r from-blue-900 to-[#0a0f1a] p-4 flex justify-between items-center border-b border-white/10 shadow-lg">
-                <div className="flex items-center gap-3"><h3 className="font-black text-sm text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">CS VinzSky-shopID</h3></div>
-                <button onClick={() => setIsChatOpen(false)} className="text-white/50 bg-white/10 p-1.5 rounded-full hover:bg-red-500/50 hover:text-white transition-colors"><X size={18}/></button>
+      {/* ══════════════════════════════════════════════════════
+          REVIEW MODAL
+      ══════════════════════════════════════════════════════ */}
+      {reviewData && (
+        <div className="m-overlay">
+          <div className="m-box w-full max-w-lg rounded-[3rem]" style={{background:'rgba(5,9,25,.82)',backdropFilter:'blur(28px) saturate(170%)',border:'1px solid rgba(234,179,8,.32)',boxShadow:'0 0 60px rgba(234,179,8,.2)'}}>
+            <div className="absolute top-0 left-0 w-full h-1.5 rounded-t-[3rem]" style={{background:'linear-gradient(to right,#eab308,#f97316)'}}/>
+            <div className="mscroll p-8 text-center" style={{maxHeight:'92vh'}}>
+              <Star size={48} className="mx-auto text-yellow-500 fill-yellow-500 mb-4 animate-pulse mt-4" style={{filter:'drop-shadow(0 0 10px #eab308)'}}/>
+              <h2 className="text-2xl font-black mb-2 uppercase">Toolsnya udah aktif! 🎉</h2>
+              <p className="text-xs text-gray-400 mb-6 font-bold">Kasih bintang 5 dong buat <span className="text-blue-400">{reviewData.productName}</span>!</p>
+              <div className="p-4 rounded-2xl mb-6 text-left" style={{background:'rgba(0,0,0,.34)',border:'1px solid rgba(255,255,255,.06)'}}>
+                <p className="text-[10px] text-gray-500 font-black uppercase mb-1 tracking-widest">Nama Pembeli:</p>
+                <p className="text-sm font-bold uppercase">{reviewData.customerName}</p>
               </div>
-              <div className="h-72 p-4 overflow-y-auto flex flex-col gap-3 bg-black/80 custom-scrollbar">
-                {chatMessages.map((msg, idx) => (
-                  <div key={idx} className={`max-w-[85%] rounded-2xl p-3 text-sm shadow-md ${msg.sender === 'user' ? 'bg-blue-600 text-white self-end rounded-br-sm' : 'bg-[#1e293b] text-gray-200 self-start rounded-bl-sm border border-white/5'}`}>{msg.text}</div>
+              <div className="mb-6">
+                <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-3">Rating Anda</p>
+                <div className="flex justify-center gap-2">{[1,2,3,4,5].map(s=><Star key={s} size={32} onClick={()=>setRating(s)} className={`cursor-pointer hover:scale-110 transition-all ${s<=rating?'text-yellow-500 fill-yellow-500':'text-gray-600'}`} style={s<=rating?{filter:'drop-shadow(0 0 5px #eab308)'}:{}}/>)}</div>
+              </div>
+              <textarea placeholder="Tulis testimoni paling gokil lu Bosku..." value={reviewText} onChange={e=>setReviewText(e.target.value)} className="w-full rounded-2xl p-4 text-sm outline-none text-white h-32 resize-none mb-6" style={{background:'rgba(0,0,0,.34)',border:'1px solid rgba(255,255,255,.09)'}}/>
+              <button onClick={submitReview} disabled={isSending} className="w-full py-4 rounded-[1.5rem] font-black text-lg transition-all hover:scale-105 flex justify-center items-center gap-2" style={{background:'linear-gradient(135deg,#d97706,#ea580c)',boxShadow:'0 0 20px rgba(234,179,8,.4)'}}>
+                {isSending?<Clock className="animate-spin" size={20}/>:<Send size={20}/>}{isSending?'MENGIRIM...':'KIRIM REVIEW'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════
+          RECEIPT MODAL
+      ══════════════════════════════════════════════════════ */}
+      {showReceipt && (
+        <div className="m-overlay">
+          <canvas ref={receiptCanvasRef} className="absolute inset-0 z-0 pointer-events-none"/>
+          <div className="m-box w-full max-w-sm rounded-[2rem] z-10 shadow-[0_0_100px_rgba(255,255,255,.2)]" style={{background:'white',color:'black'}}>
+            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-green-500 text-white p-3 rounded-full z-20 flex items-center justify-center" style={{border:'4px solid rgba(2,6,16,1)',boxShadow:'0 0 20px rgba(34,197,94,.7)'}}>
+              <HeartHandshake size={32} strokeWidth={2.5}/>
+            </div>
+            <div className="mscroll p-6 pb-10 md:p-8 font-mono" style={{maxHeight:'92vh'}}>
+              <div className="text-center mb-6 pb-6 pt-6" style={{borderBottom:'2px dashed #d1d5db'}}>
+                <h3 className="text-2xl font-black uppercase tracking-tighter text-black">VINZSKY-SHOPID</h3>
+                <p className="text-[10px] text-gray-500 mt-1">{showReceipt.date}</p>
+                <p className="text-[10px] text-gray-400 mt-1 font-bold inline-block px-2 py-0.5 rounded bg-gray-100">ID: {showReceipt.id}</p>
+              </div>
+              {showReceipt.customerEmail && <p className="text-[10px] text-center text-gray-500 mb-2 font-bold">📧 {showReceipt.customerEmail}</p>}
+              <p className="text-xs text-center text-blue-600 font-black mb-4">Pesanan SULTAN diproses! Tunggu License Key dari Admin ya! 🎉</p>
+              <div className="space-y-3 mb-6 text-xs font-bold pb-6" style={{borderBottom:'1px solid #e5e7eb'}}>
+                {showReceipt.hwidItems.map((item,idx)=>(
+                  <div key={idx} className="flex justify-between items-end p-2 rounded-lg bg-gray-50">
+                    <div className="flex flex-col"><span className="truncate max-w-[150px] text-black">{item.productName}</span><span className="text-[9px] text-gray-500">{item.duration}</span></div>
+                  </div>
                 ))}
-                <div ref={chatEndRef} />
+                <div className="pt-4 flex justify-between items-center font-black text-sm p-3 rounded-xl" style={{background:'#eff6ff',border:'1px solid #bfdbfe',color:'#2563eb'}}>
+                  <span>TOTAL BAYAR</span><span>Rp {showReceipt.total.toLocaleString()}</span>
+                </div>
               </div>
-              <form onSubmit={handleSendChat} className="p-3 bg-[#0a0f1a] flex gap-2 border-t border-white/10 shadow-inner">
-                <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Ketik pesan Bosku..." className="flex-1 bg-black border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(37,99,235,0.3)] text-sm text-white transition-all shadow-inner" />
-                <button type="submit" disabled={!chatInput.trim()} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white p-3 rounded-xl transition-all shadow-[0_0_15px_rgba(37,99,235,0.5)] hover:scale-105"><Send size={18}/></button>
+              <div className="p-5 rounded-2xl text-center mb-6" style={{background:'#111827'}}>
+                <p className="text-[9px] font-black text-gray-400 mb-2 uppercase tracking-widest">Master HWID PC Anda:</p>
+                <code className="text-lg font-black text-white uppercase tracking-widest">{showReceipt.masterHwid}</code>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={()=>window.print()} className="flex-1 bg-black hover:bg-gray-800 text-white py-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition-colors"><Printer size={14}/>PDF</button>
+                <button onClick={()=>setShowReceipt(null)} className="flex-1 py-4 rounded-xl font-black text-xs transition-colors text-black hover:bg-gray-200" style={{background:'#f3f4f6'}}>SELESAI</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════
+          FAB CHAT
+      ══════════════════════════════════════════════════════ */}
+      {!isAnyModalOpen && (
+        <div className="fixed bottom-6 right-6 z-[500] flex flex-col items-end">
+          {isChatOpen && (
+            <div className="mb-4 w-80 sm:w-96 rounded-2xl flex flex-col overflow-hidden" style={{background:'rgba(5,10,28,.97)',backdropFilter:'blur(24px)',border:'1px solid rgba(59,130,246,.35)',boxShadow:'0 0 40px rgba(37,99,235,.3)'}}>
+              <div className="p-4 flex justify-between items-center" style={{background:'linear-gradient(to right,rgba(37,99,235,.25),rgba(5,10,28,0))',borderBottom:'1px solid rgba(255,255,255,.07)'}}>
+                <div>
+                  <h3 className="font-black text-sm">CS VinzSky-shopID</h3>
+                  <p className="text-[9px] text-green-400 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block" style={{boxShadow:'0 0 4px #22c55e'}}/>Online</p>
+                </div>
+                <button onClick={()=>setIsChatOpen(false)} className="p-1.5 rounded-full hover:bg-red-500/50 transition-colors" style={{background:'rgba(255,255,255,.07)'}}><X size={18}/></button>
+              </div>
+              <div className="h-64 p-4 flex flex-col gap-3 mscroll" style={{background:'rgba(0,0,0,.55)'}}>
+                {chatMessages.map((m,i)=>(
+                  <div key={i} className={`max-w-[85%] rounded-2xl p-3 text-sm shadow-md ${m.sender==='user'?'bg-blue-600 self-end rounded-br-sm':'self-start rounded-bl-sm text-gray-200'}`} style={m.sender!=='user'?{background:'rgba(30,41,59,.85)',border:'1px solid rgba(255,255,255,.07)'}:{}}>
+                    {m.text}
+                  </div>
+                ))}
+                <div ref={chatEndRef}/>
+              </div>
+              <form onSubmit={handleSendChat} className="p-3 flex gap-2" style={{background:'rgba(5,10,28,.92)',borderTop:'1px solid rgba(255,255,255,.08)'}}>
+                <input type="text" value={chatInput} onChange={e=>setChatInput(e.target.value)} placeholder="Ketik pesan Bosku..." className="flex-1 px-4 py-3 outline-none text-sm rounded-xl" style={{background:'rgba(0,0,0,.40)',border:'1px solid rgba(255,255,255,.08)',color:'white'}}/>
+                <button type="submit" disabled={!chatInput.trim()} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white p-3 rounded-xl hover:scale-105 transition-all"><Send size={18}/></button>
               </form>
             </div>
           )}
-          <button onClick={() => setIsChatOpen(!isChatOpen)} className={`w-16 h-16 bg-gradient-to-tr from-green-500 to-emerald-400 rounded-full flex items-center justify-center text-white shadow-[0_0_40px_rgba(34,197,94,0.6)] hover:scale-110 transition-all z-50 ${!isChatOpen ? 'animate-bounce' : ''}`}>
-            {isChatOpen ? <X size={28} /> : 
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" className="animate-pulse">
+          <button onClick={()=>setIsChatOpen(!isChatOpen)} className={`w-16 h-16 rounded-full flex items-center justify-center text-white hover:scale-110 transition-all z-50 ${!isChatOpen?'animate-bounce':''}`}
+            style={{background:'linear-gradient(135deg,#22c55e,#10b981)',boxShadow:'0 0 20px rgba(34,197,94,.6), 0 0 40px rgba(34,197,94,.3)'}}>
+            {isChatOpen?<X size={28}/>:
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
               </svg>
             }
           </button>
         </div>
       )}
-
     </div>
   )
 }
