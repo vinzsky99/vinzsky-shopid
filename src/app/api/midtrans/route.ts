@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"; // 🚀 WAJIB ADA BIAR VERCEL GAK ERROR!
+
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
