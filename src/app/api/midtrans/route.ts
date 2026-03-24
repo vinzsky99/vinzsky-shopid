@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic"; // 🚀 WAJIB ADA BIAR VERCEL GAK ERROR!
+export const dynamic = "force-dynamic";
 
 import { NextResponse } from 'next/server';
 
