@@ -9,14 +9,23 @@ import {
   Star, Search, ShoppingCart, Bell, MoreVertical, History, Key, X, Plus,
   ShieldCheck, Upload, Send, CheckCircle, Download, FileText, Clock, Printer,
   HardDrive, Trash2, Phone, UserCircle, Quote, Flame, Users, Copy, Crown,
-  Percent, HeartHandshake, Landmark, Wallet, Mail, Maximize2,
-  Eye, TrendingUp, LogIn, LogOut, Zap
+  Percent, Landmark, Mail, Maximize2, Eye, LogIn, LogOut, Zap
 } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
+
+import CheckoutManual from '../components/Checkoutmanual'
+import dynamic from 'next/dynamic'
+const OrderStatus = dynamic(() => import('../components/OrderStatus'), { 
+  ssr: false,
+  loading: () => <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-md"><p style={{color: 'white', fontWeight: 'bold'}}>Loading Status Pesanan...</p></div>
+})
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const supabase = createClient(supabaseUrl, supabaseKey)
+const supabase = globalThis.__supabase || createClient(supabaseUrl, supabaseKey)
+if (process.env.NODE_ENV !== 'production') globalThis.__supabase = supabase
+
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'vinz.official9922@gmail.com'
 const isAdminUser = (user) => user && (user.email === ADMIN_EMAIL || user.user_metadata?.is_admin)
 
@@ -45,10 +54,6 @@ const DiamondIcon = ({ color = '#60a5fa', glow = 'rgba(96,165,250,.7)', size = 2
     <polygon points="12,2 20,8 12,10 4,8" fill="white" opacity="0.35" />
     <polygon points="12,10 20,10 12,22" fill={color} opacity="0.6" />
     <polygon points="4,10 12,10 12,22" fill={color} opacity="0.8" />
-    <line x1="4" y1="8" x2="20" y2="8" stroke="white" strokeWidth="0.5" opacity="0.4" />
-    <line x1="4" y1="10" x2="12" y2="2" stroke="white" strokeWidth="0.3" opacity="0.3" />
-    <line x1="20" y1="10" x2="12" y2="2" stroke="white" strokeWidth="0.3" opacity="0.3" />
-    {animate && <animate attributeName="opacity" values="0.9;1;0.9" dur="1.5s" repeatCount="indefinite" />}
   </svg>
 )
 
@@ -71,6 +76,19 @@ const getExactTime = () => {
   });
 }
 
+function timeAgo(dateParam) {
+  if (!dateParam) return 'Baru saja';
+  const date = new Date(dateParam);
+  const seconds = Math.round((new Date() - date) / 1000);
+  if (seconds < 60) return 'Baru saja';
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} menit yang lalu`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} jam yang lalu`;
+  const days = Math.round(hours / 24);
+  return `${days} hari yang lalu`;
+}
+
 const GS = () => (
   <style>{`
     html, body { overflow-x: hidden; }
@@ -82,7 +100,6 @@ const GS = () => (
     .m-box { position: relative; width: 100%; max-height: 92vh; overflow: hidden; display: flex; flex-direction: column; background: rgba(15,0,20,.35) !important; backdrop-filter: blur(48px) saturate(200%) !important; border: 1px solid rgba(255,255,255,0.15) !important; box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2) !important; }
     .glass-nav { background: rgba(5,0,20,.3) !important; backdrop-filter: blur(48px) saturate(200%) !important; -webkit-backdrop-filter: blur(48px) saturate(200%) !important; border-bottom: 1px solid rgba(255,255,255,0.1); }
 
-    /* ═══════════ GALAXY ANIMATION & MOUSE GLOW ═══════════ */
     @keyframes slowGalaxy { 0% { transform: scale(1.05) rotate(0deg); } 50% { transform: scale(1.12) rotate(0.5deg); } 100% { transform: scale(1.05) rotate(0deg); } }
     .animate-slowGalaxy { animation: slowGalaxy 30s infinite ease-in-out; }
     
@@ -90,8 +107,6 @@ const GS = () => (
     .mouse-follower::after { content: ''; position: absolute; inset: -40px; border-radius: 50%; background: inherit; filter: blur(30px); opacity: 0.8; }
     @keyframes rainbowGlowBg { 0%{background-color:#ef4444;box-shadow:0 0 20px #ef4444} 14%{background-color:#f97316;box-shadow:0 0 20px #f97316} 28%{background-color:#eab308;box-shadow:0 0 20px #eab308} 42%{background-color:#22c55e;box-shadow:0 0 20px #22c55e} 57%{background-color:#06b6d4;box-shadow:0 0 20px #06b6d4} 71%{background-color:#6366f1;box-shadow:0 0 20px #6366f1} 85%{background-color:#a855f7;box-shadow:0 0 20px #a855f7} 100%{background-color:#ef4444;box-shadow:0 0 20px #ef4444} }
 
-
-    /* ═══════════ RAINBOW COLORFUL GLOW HOVER ═══════════ */
     @keyframes rainbowGlow {
       0%   { box-shadow: 0 0 20px rgba(239,68,68,0.9), 0 0 45px rgba(239,68,68,0.5), inset 0 0 15px rgba(239,68,68,0.3); border-color: rgba(239,68,68,0.9); }
       14%  { box-shadow: 0 0 20px rgba(249,115,22,0.9), 0 0 45px rgba(249,115,22,0.5), inset 0 0 15px rgba(249,115,22,0.3); border-color: rgba(249,115,22,0.9); }
@@ -123,7 +138,6 @@ const GS = () => (
     .ninja-card-hover { transition: all 0.4s ease; border: 1px solid rgba(255,255,255,.1); }
     .ninja-card-hover:hover { animation: rainbowGlow 2s linear infinite !important; transform: translateY(-10px) scale(1.03) !important; z-index: 10; }
 
-    /* ═══════════ FOMO ═══════════ */
     @keyframes fomoSlideIn { 0% { opacity: 0; transform: translateX(-100%) scale(0.9); filter: blur(10px); } 70% { transform: translateX(10px) scale(1.02); filter: blur(0); } 100% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); } }
     @keyframes fomoSlideOut { 0% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); } 100% { opacity: 0; transform: translateX(-100%) scale(0.9) translateY(-20px); filter: blur(10px); } }
     .fomo-slide-in { animation: fomoSlideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
@@ -140,7 +154,6 @@ const GS = () => (
     @keyframes visitorPulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.7;transform:scale(1.05);} }
     .visitor-pulse { animation: visitorPulse 2s ease infinite; }
 
-    /* ═══════════ HEARTBEAT SVG ANIMASI TERINDAH ═══════════ */
     @keyframes heartbeat-draw {
       0%   { stroke-dashoffset: 2500; opacity: 0; stroke: #ef4444; }
       5%   { opacity: 1; stroke: #f97316; }
@@ -163,7 +176,6 @@ const GS = () => (
     @keyframes testi-glow { 0%,100%{text-shadow:0 0 15px rgba(239,68,68,.8),0 0 30px rgba(239,68,68,.4)} 50%{text-shadow:0 0 25px rgba(239,68,68,1),0 0 50px rgba(239,68,68,.7),0 0 80px rgba(239,68,68,.3)} }
     .testi-glow { animation: testi-glow 2s ease-in-out infinite; }
 
-    /* ═══════════ SHOOTING STARS ═══════════ */
     @keyframes shootStar { 0%{transform:translateX(-100px) translateY(-100px) rotate(35deg);opacity:1} 100%{transform:translateX(110vw) translateY(110vh) rotate(35deg);opacity:0} }
     .sstar { position:fixed; z-index:1; pointer-events:none; width:2px; border-radius:999px; background:linear-gradient(to bottom,rgba(255,255,255,0),rgba(255,255,255,.95)); }
     .sstar:nth-child(1){height:70px;top:8%;left:15%;animation:shootStar 3.2s linear 0s infinite;}
@@ -173,7 +185,6 @@ const GS = () => (
     .sstar:nth-child(5){height:45px;top:75%;left:45%;animation:shootStar 4.8s linear 3.5s infinite;}
     .sstar:nth-child(6){height:80px;top:40%;left:90%;animation:shootStar 3.9s linear 1.8s infinite;}
 
-    /* ═══════════ NEBULA LAYERS ═══════════ */
     .neb { position:fixed; z-index:0; pointer-events:none; border-radius:50%; }
     .neb1 { width:900px;height:900px;background:radial-gradient(ellipse,rgba(139,0,50,.15) 0%,rgba(80,0,80,.08) 40%,transparent 70%);top:-300px;left:-300px;animation:slowGalaxy 22s ease-in-out infinite; }
     .neb2 { width:700px;height:700px;background:radial-gradient(ellipse,rgba(0,50,139,.12) 0%,rgba(0,60,120,.08) 40%,transparent 70%);bottom:-200px;right:-200px;animation:slowGalaxy 28s ease-in-out 6s infinite reverse; }
@@ -181,9 +192,10 @@ const GS = () => (
     .neb4 { width:400px;height:400px;background:radial-gradient(ellipse,rgba(0,100,80,.09) 0%,transparent 70%);top:10%;right:15%;animation:slowGalaxy 45s ease-in-out 3s infinite; }
 
     video { transform: translate3d(0,0,0); backface-visibility: hidden; perspective: 1000px; -webkit-font-smoothing: subpixel-antialiased; display: block; will-change: transform, opacity; }
+    .receipt-paper { background: #fff; color: #000; font-family: monospace; padding: 30px; border-radius: 8px; position: relative; box-shadow: 0 0 40px rgba(255,255,255,0.2); }
+    .receipt-paper::after { content: ''; position: absolute; bottom: -10px; left: 0; right: 0; height: 10px; background-image: radial-gradient(circle, transparent 5px, #fff 5px); background-size: 20px 20px; background-position: -10px 0; }
   `}</style>
 )
-
 
 const GalaxyCanvas = () => {
   const canvasRef = useRef(null)
@@ -227,8 +239,6 @@ const GalaxyCanvas = () => {
     let frame = 0; let raf
     const draw = () => {
       ctx.clearRect(0, 0, W, H)
-
-      // Nebula blobs
       nebulas.forEach(n => {
         ctx.save()
         ctx.translate(n.x, n.y); ctx.rotate(n.angle)
@@ -238,16 +248,12 @@ const GalaxyCanvas = () => {
         ctx.beginPath(); ctx.arc(0, 0, Math.max(n.rx, n.ry), 0, Math.PI * 2); ctx.fill()
         ctx.restore()
       })
-
-      // Bima Sakti band
       milkyWay.forEach(s => {
         ctx.globalAlpha = s.opacity * (0.5 + 0.5 * Math.sin(frame * 0.004 + s.x * 0.01))
         ctx.fillStyle = s.color
         ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill()
       })
       ctx.globalAlpha = 1
-
-      // Normal twinkling stars
       stars.forEach(s => {
         const tw = 0.4 + 0.6 * Math.sin(frame * s.speed * 60 + s.phase)
         ctx.globalAlpha = 0.4 + tw * 0.6
@@ -258,20 +264,16 @@ const GalaxyCanvas = () => {
         ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 0.5, 0, Math.PI * 2); ctx.fill()
       })
       ctx.globalAlpha = 1
-
-      // Occasional bright star flare
       if (frame % 120 === 0) {
         const bx = Math.random() * W, by = Math.random() * H
         const bg = ctx.createRadialGradient(bx, by, 0, bx, by, 30)
         bg.addColorStop(0, 'rgba(255,255,255,0.9)'); bg.addColorStop(0.3, 'rgba(200,220,255,0.3)'); bg.addColorStop(1, 'transparent')
         ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(bx, by, 30, 0, Math.PI * 2); ctx.fill()
-        // Cross flare
         ctx.globalAlpha = 0.6; ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 0.5
         ctx.beginPath(); ctx.moveTo(bx - 40, by); ctx.lineTo(bx + 40, by); ctx.stroke()
         ctx.beginPath(); ctx.moveTo(bx, by - 40); ctx.lineTo(bx, by + 40); ctx.stroke()
         ctx.globalAlpha = 1
       }
-
       frame++
       raf = requestAnimationFrame(draw)
     }
@@ -283,8 +285,7 @@ const GalaxyCanvas = () => {
 
 const HeartbeatDivider = () => (
   <div style={{ position: 'relative', width: '100%', height: '80px', margin: '0 0 3rem 0', overflow: 'visible' }}>
-    <svg viewBox="0 0 1400 80" preserveAspectRatio="none"
-      style={{ width: '100%', height: '80px', display: 'block', overflow: 'visible' }} xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 1400 80" preserveAspectRatio="none" style={{ width: '100%', height: '80px', display: 'block', overflow: 'visible' }} xmlns="http://www.w3.org/2000/svg">
       <defs>
         <filter id="hbGlow" x="-20%" y="-300%" width="140%" height="700%">
           <feGaussianBlur stdDeviation="2.5" result="b1" />
@@ -300,61 +301,23 @@ const HeartbeatDivider = () => (
           <stop offset="100%" stopColor="#ff0000" stopOpacity="0" />
         </linearGradient>
       </defs>
-      {/* Main heartbeat path - full width left to right */}
-      <path className="heartbeat-line" filter="url(#hbGlow)" fill="none"
-        stroke="url(#hbGrad)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-        d="M 0,40 L 80,40 L 110,40 L 120,40
-           L 128,16 L 138,66 L 148,8 L 158,72 L 168,40
-           L 200,40 L 260,40
-           L 270,40 L 278,22 L 288,58 L 298,10 L 308,70 L 318,40
-           L 350,40 L 430,40
-           L 440,40 L 448,18 L 458,62 L 468,6 L 478,74 L 488,40
-           L 520,40 L 600,40
-           L 610,40 L 618,20 L 628,60 L 638,8 L 648,72 L 658,40
-           L 690,40 L 780,40
-           L 790,40 L 798,16 L 808,65 L 818,10 L 828,70 L 838,40
-           L 870,40 L 960,40
-           L 970,40 L 978,22 L 988,58 L 998,8 L 1008,72 L 1018,40
-           L 1050,40 L 1140,40
-           L 1150,40 L 1158,18 L 1168,62 L 1178,6 L 1188,74 L 1198,40
-           L 1230,40 L 1320,40
-           L 1330,40 L 1338,20 L 1348,60 L 1358,10 L 1368,70 L 1378,40
-           L 1400,40"
-      />
-      {/* Pulse dot at end */}
+      <path className="heartbeat-line" filter="url(#hbGlow)" fill="none" stroke="url(#hbGrad)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M 0,40 L 80,40 L 110,40 L 120,40 L 128,16 L 138,66 L 148,8 L 158,72 L 168,40 L 200,40 L 260,40 L 270,40 L 278,22 L 288,58 L 298,10 L 308,70 L 318,40 L 350,40 L 430,40 L 440,40 L 448,18 L 458,62 L 468,6 L 478,74 L 488,40 L 520,40 L 600,40 L 610,40 L 618,20 L 628,60 L 638,8 L 648,72 L 658,40 L 690,40 L 780,40 L 790,40 L 798,16 L 808,65 L 818,10 L 828,70 L 838,40 L 870,40 L 960,40 L 970,40 L 978,22 L 988,58 L 998,8 L 1008,72 L 1018,40 L 1050,40 L 1140,40 L 1150,40 L 1158,18 L 1168,62 L 1178,6 L 1188,74 L 1198,40 L 1230,40 L 1320,40 L 1330,40 L 1338,20 L 1348,60 L 1358,10 L 1368,70 L 1378,40 L 1400,40" />
       <circle cx="1400" cy="40" r="5" fill="#ff0000" className="hb-pulse-dot" filter="url(#hbGlow)" />
     </svg>
-
-    {/* Title pill in center */}
-    <div style={{
-      position: 'absolute', top: '50%', left: '50%',
-      transform: 'translate(-50%,-50%)',
-      display: 'flex', alignItems: 'center', gap: '12px',
-      background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(16px)',
-      padding: '10px 28px', borderRadius: '999px',
-      border: '1px solid rgba(239,68,68,0.5)',
-      boxShadow: '0 0 30px rgba(220,38,38,0.35)',
-      whiteSpace: 'nowrap', zIndex: 2,
-    }}>
+    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(16px)', padding: '10px 28px', borderRadius: '999px', border: '1px solid rgba(239,68,68,0.5)', boxShadow: '0 0 30px rgba(220,38,38,0.35)', whiteSpace: 'nowrap', zIndex: 2 }}>
       <Quote size={18} style={{ color: '#ef4444', filter: 'drop-shadow(0 0 8px #ef4444)', fill: '#ef4444' }} />
-      <span className="testi-glow" style={{
-        fontSize: '1.05rem', fontWeight: 900, fontStyle: 'italic',
-        background: 'linear-gradient(90deg,#ef4444,#f97316,#fbbf24,#f97316,#ef4444)',
-        backgroundSize: '200%',
-        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-      }}>Testimoni VinzSky-shopID</span>
+      <span className="testi-glow" style={{ fontSize: '1.05rem', fontWeight: 900, fontStyle: 'italic', background: 'linear-gradient(90deg,#ef4444,#f97316,#fbbf24,#f97316,#ef4444)', backgroundSize: '200%', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Testimoni VinzSky-shopID</span>
     </div>
   </div>
 )
 
-
 export default function Home() {
+  const router = useRouter()
   const [cart, setCart] = useState([])
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [selectedDuration, setSelectedDuration] = useState(DURATIONS[3])
   const [showCheckout, setShowCheckout] = useState(false)
   const [payMethod, setPayMethod] = useState('midtrans')
-  const [buktiBayar, setBuktiBayar] = useState(null)
   const [customerName, setCustomerName] = useState('')
   const [customerWA, setCustomerWA] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
@@ -367,16 +330,8 @@ export default function Home() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isChatOpen, setIsChatOpen] = useState(false)
-  const [chatInput, setChatInput] = useState('')
-  const [chatMessages, setChatMessages] = useState([{ sender: 'cs', text: 'Halo Bosku! Ada yang bisa CS VinzSky-shopID bantu hari ini?' }])
-  const [lastUpdateId, setLastUpdateId] = useState(0)
-  const [reviewData, setReviewData] = useState(null)
-  const [rating, setRating] = useState(5)
-  const [reviewText, setReviewText] = useState('')
   const [timeLeft, setTimeLeft] = useState(7200)
   const [isVipMember, setIsVipMember] = useState(false)
-  const [vipTierInfo, setVipTierInfo] = useState(null)
   const [showExitPopup, setShowExitPopup] = useState(false)
   const [hasShownExit, setHasShownExit] = useState(false)
   const [hasExitPromo, setHasExitPromo] = useState(false)
@@ -387,7 +342,9 @@ export default function Home() {
   const [dbError, setDbError] = useState(null)
   const [fullscreenVideo, setFullscreenVideo] = useState(null)
 
-  // 🔥 STATE NOTIFIKASI FOMO DEWA 🔥
+  const [showManualCheckout, setShowManualCheckout] = useState(false)
+  const [showOrderStatus, setShowOrderStatus] = useState(false)
+
   const [fomoQueue, setFomoQueue] = useState([])
   const [activeFomo, setActiveFomo] = useState(null)
   const [fomoLeaving, setFomoLeaving] = useState(false)
@@ -399,13 +356,10 @@ export default function Home() {
   const [authUser, setAuthUser] = useState(null)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authLoading, setAuthLoading] = useState(false)
-  const [showOrderStatus, setShowOrderStatus] = useState(false)
-  const [orderStatusData, setOrderStatusData] = useState([])
 
-  const receiptCanvasRef = useRef(null)
-  const chatEndRef = useRef(null)
+  const [userActiveTier, setUserActiveTier] = useState(null)
 
-  const isAnyModalOpen = showCheckout || selectedProduct !== null || activeMenu !== null || showReceipt !== null || reviewData !== null || showExitPopup || fullscreenVideo !== null || showAuthModal || showOrderStatus
+  const isAnyModalOpen = showCheckout || showManualCheckout || showOrderStatus || selectedProduct !== null || activeMenu !== null || showReceipt !== null || showExitPopup || fullscreenVideo !== null || showAuthModal
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -430,6 +384,28 @@ export default function Home() {
     return () => subscription.unsubscribe()
   }, [])
 
+  useEffect(() => {
+    if (authUser?.email) {
+      const fetchUserTier = async () => {
+        const { data } = await supabase
+          .from('user_licenses')
+          .select('tier_code, duration_days')
+          .eq('user_email', authUser.email)
+          .eq('license_status', 'ACTIVE')
+          .order('duration_days', { ascending: false })
+          .limit(1)
+
+        if (data && data.length > 0) {
+          const tier = DURATIONS.find(d => d.code === data[0].tier_code)
+          if (tier) setUserActiveTier(tier)
+        }
+      }
+      fetchUserTier()
+    } else {
+      setUserActiveTier(null)
+    }
+  }, [authUser])
+
   const handleGoogleLogin = async () => {
     setAuthLoading(true)
     await supabase.auth.signInWithOAuth({
@@ -447,34 +423,51 @@ export default function Home() {
     setShowAuthModal(false)
   }
 
-  const fetchOrderStatus = useCallback(async () => {
-    if (!authUser) return
-    try {
-      const { data } = await supabase.from('orders').select('*')
-        .eq('customer_email', authUser.email)
-        .order('created_at', { ascending: false })
-      setOrderStatusData(data || [])
-    } catch (e) { }
-  }, [authUser])
-
-  useEffect(() => { if (authUser) fetchOrderStatus() }, [authUser, fetchOrderStatus])
-
   useEffect(() => {
     document.body.classList.toggle('modal-open', isAnyModalOpen)
     return () => document.body.classList.remove('modal-open')
   }, [isAnyModalOpen])
 
-  // 🔥 LOGIKA FOMO POPUP SLIDE 🔥
   useEffect(() => {
     if (!activeFomo && fomoQueue.length > 0 && !isAnyModalOpen) {
       const [next, ...rest] = fomoQueue; setFomoQueue(rest); setActiveFomo(next); setFomoLeaving(false)
-      // Tahan di layar 5.5 detik
-      fomoTimerRef.current = setTimeout(() => { setFomoLeaving(true); setTimeout(() => setActiveFomo(null), 500) }, 5500)
+      fomoTimerRef.current = setTimeout(() => { setFomoLeaving(true); setTimeout(() => setActiveFomo(null), 500) }, 6000)
     }
     return () => clearTimeout(fomoTimerRef.current)
   }, [activeFomo, fomoQueue, isAnyModalOpen])
 
   const pushFomo = useCallback((item) => setFomoQueue(q => [...q.slice(-4), item]), [])
+
+  useEffect(() => {
+    const handlePurchaseFomo = (e) => {
+      pushFomo({
+        type: 'purchase',
+        title: '🛒 PEMBELIAN BARU',
+        name: e.detail.name || 'Guest User',
+        avatar: null,
+        desc: `Baru saja membeli paket ${e.detail.product}`,
+        time: getExactTime()
+      });
+    };
+    const handleReviewFomo = (e) => {
+      pushFomo({
+        type: 'review',
+        title: '🌟 ULASAN BARU',
+        name: e.detail.name || 'Sultan User',
+        avatar: e.detail.avatar || null,
+        desc: `Memberikan ulasan bintang ${e.detail.rating} untuk ${e.detail.product}`,
+        time: getExactTime()
+      });
+    };
+    
+    window.addEventListener('new_purchase_fomo', handlePurchaseFomo);
+    window.addEventListener('new_review_fomo', handleReviewFomo);
+    
+    return () => {
+        window.removeEventListener('new_purchase_fomo', handlePurchaseFomo);
+        window.removeEventListener('new_review_fomo', handleReviewFomo);
+    };
+  }, [pushFomo]);
 
   useEffect(() => {
     const ck = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY
@@ -541,58 +534,6 @@ export default function Home() {
     } catch (e) { }
   }, [])
 
-  // 🔥 SUPABASE REALTIME MULTI-CHANNEL UNTUK FOMO NOTIFICATION 🔥
-  useEffect(() => {
-    const ch = supabase.channel('realtime-fomo-super')
-      // 1. DETEKSI PEMBELIAN BARU (orders)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, payload => {
-        const o = payload.new;
-        const buyerName = o.buyer_name || o.customer_name || 'Guest User';
-        const productName = o.items?.[0]?.name || 'Produk VIP';
-        pushFomo({
-          type: 'purchase',
-          title: '🛒 PEMBELIAN BARU',
-          name: buyerName,
-          avatar: o.buyer_avatar || null,
-          desc: `Baru saja membeli paket ${productName}`,
-          time: getExactTime()
-        });
-        setNotifications(n => [{ time: new Date().toLocaleTimeString(), text: `🛒 ${buyerName} membeli ${productName}` }, ...n]);
-        setUnreadCount(c => c + 1); setShowNotif(true);
-      })
-      // 2. DETEKSI REVIEW BARU (reviews)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reviews' }, payload => {
-        const r = payload.new;
-        const reviewerName = r.name || 'Sultan User';
-        pushFomo({
-          type: 'review',
-          title: '🌟 ULASAN BARU',
-          name: reviewerName,
-          avatar: r.buyer_avatar || null,
-          desc: `Memberikan ulasan bintang ${r.rating} untuk ${r.product}`,
-          time: getExactTime()
-        });
-      })
-      // 3. DETEKSI AKTIVASI TOOLS (licenses UPDATE to ACTIVE)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'licenses' }, payload => {
-        const l = payload.new;
-        const old = payload.old;
-        if (l.status === 'ACTIVE' && old.status !== 'ACTIVE') {
-          pushFomo({
-            type: 'activation',
-            title: '⚡ AKTIVASI TOOLS',
-            name: 'Member VinzSky-shopID',
-            avatar: null,
-            desc: `Baru saja mengaktifkan tools (Paket ${l.tier})`,
-            time: getExactTime()
-          });
-        }
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(ch) }
-  }, [pushFomo])
-
   useEffect(() => {
     const onML = e => { if (e.clientY <= 0 && !hasShownExit && !isAnyModalOpen) { setShowExitPopup(true); setHasShownExit(true) } }
     const onVC = () => { if (document.hidden && !hasShownExit && !isAnyModalOpen) { setShowExitPopup(true); setHasShownExit(true) } }
@@ -616,35 +557,12 @@ export default function Home() {
     try {
       const h = JSON.parse(localStorage.getItem('vinzsky_history') || '[]')
       setHistoryData(h)
-      if (h.length) { setIsVipMember(true); const t = DURATIONS.find(d => d.label === h[0]?.hwidItems?.[0]?.duration) || DURATIONS[3]; setVipTierInfo(t) }
+      if (h.length) { setIsVipMember(true) }
     } catch (e) { setHistoryData([]) }
   }, [])
 
   useEffect(() => { const id = setInterval(() => setTimeLeft(p => p <= 0 ? 7200 : p - 1), 1000); return () => clearInterval(id) }, [])
   useEffect(() => { if (showNotif) { const t = setTimeout(() => setShowNotif(false), 5500); return () => clearTimeout(t) } }, [showNotif, notifications])
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [chatMessages, isChatOpen])
-
-  useEffect(() => { fetch('/api/telegram?offset=-1').then(r => r.json()).then(d => { if (d.ok && d.result.length) setLastUpdateId(d.result[0].update_id + 1) }).catch(() => { }) }, [])
-  useEffect(() => {
-    if (!isChatOpen) return
-    const id = setInterval(async () => {
-      try {
-        const d = await (await fetch(`/api/telegram?offset=${lastUpdateId}`)).json()
-        if (d.ok && d.result.length) { let lid = lastUpdateId; const msgs = []; d.result.forEach(u => { lid = u.update_id + 1; if (u.message?.text && !u.message.from.is_bot) msgs.push({ sender: 'cs', text: u.message.text }) }); if (msgs.length) setChatMessages(p => [...p, ...msgs]); setLastUpdateId(lid) }
-      } catch (e) { }
-    }, 3000)
-    return () => clearInterval(id)
-  }, [isChatOpen, lastUpdateId])
-
-  useEffect(() => {
-    if (!showReceipt || !receiptCanvasRef.current) return
-    const cv = receiptCanvasRef.current; const ctx = cv.getContext('2d')
-    let w = cv.width = window.innerWidth; let h = cv.height = window.innerHeight
-    const cols = ['#22c55e', '#3b82f6', '#eab308', '#ec4899', '#fff']
-    const conf = Array.from({ length: 180 }, () => ({ x: Math.random() * w, y: Math.random() * h - h, r: Math.random() * 6 + 2, dx: Math.random() * 4 - 2, dy: Math.random() * 5 + 2, color: cols[Math.floor(Math.random() * 5)], tilt: Math.floor(Math.random() * 10) - 10, tai: (Math.random() * .07) + .05, ta: 0 }))
-    const run = () => { ctx.clearRect(0, 0, w, h); conf.forEach(c => { c.ta += c.tai; c.y += (Math.cos(c.ta) + 1 + c.r / 2) / 2; c.x += Math.sin(c.ta) * 2; ctx.beginPath(); ctx.lineWidth = c.r; ctx.strokeStyle = c.color; ctx.moveTo(c.x + c.tilt + c.r, c.y); ctx.lineTo(c.x + c.tilt, c.y + c.tilt + c.r); ctx.stroke(); if (c.y > h) { c.y = -10; c.x = Math.random() * w } }); requestAnimationFrame(run) }
-    run()
-  }, [showReceipt])
 
   const fmt = s => `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
   const safeLink = (url) => url && url !== '#' && url !== '' ? url : null
@@ -663,8 +581,8 @@ export default function Home() {
 
   const handleCloseProduct = () => { if (!hasExitPromo && !hasShownExit) { setShowExitPopup(true); setHasShownExit(true) } else setSelectedProduct(null) }
   const handleCloseCheckout = () => {
-    if (cart.length > 0) { if (window.confirm('Yakin mau batal checkout? Promo VinzSky-shopID masih aktif!')) { setShowCheckout(false); const orig = allProducts.find(p => p.id === cart[0].id) || cart[0]; setSelectedProduct(orig); addNotif('Checkout ditunda.') } }
-    else setShowCheckout(false)
+    if (cart.length > 0) { if (!hasExitPromo) { setShowExitPopup(true); setHasShownExit(true) } }
+    setShowCheckout(false)
   }
   const addNotif = (text) => { setNotifications(p => [{ time: new Date().toLocaleTimeString(), text }, ...p]); setUnreadCount(c => c + 1); setShowNotif(true) }
 
@@ -689,102 +607,97 @@ export default function Home() {
   }
 
   const removeFromCart = i => { const nc = [...cart]; const rm = nc.splice(i, 1)[0]; setCart(nc); if (!nc.length) setShowCheckout(false); addNotif(`${rm.name} dibatalin 🥺`) }
-  const clearCart = () => { setCart([]); setShowCheckout(false); setBuktiBayar(null); addNotif('Keranjang dikosongkan.') }
+  const clearCart = () => { setCart([]); setShowCheckout(false); addNotif('Keranjang dikosongkan.') }
 
   const eksekusiPembayaran = async () => {
     if (!customerName || !customerWA || !customerEmail) return alert('Lengkapi Nama, WA, dan Email dulu Bosku!')
     const total = cart.reduce((s, i) => s + i.finalPrice, 0)
     if (total === 0) { setIsSending(true); await prosesPesananLokal('TRIAL AKTIF'); setIsSending(false); return }
-    if (payMethod === 'paypal') {
-      if (!buktiBayar) return alert('Upload bukti bayar PayPal dulu!')
-      setIsSending(true)
-      const hwid = '744BC690E35B'; const items = cart.map(i => `- ${i.name} (${i.durationLabel})`).join('\n')
-      const msg = `💸 *ORDER BARU (PAYPAL)*\n👤 ${customerName}\n📱 ${customerWA}\n📧 ${customerEmail}\n💻 ${hwid}\n💰 Rp ${total.toLocaleString()}\n\n${items}`
-      const fd = new FormData(); fd.append('caption', msg); fd.append('photo', buktiBayar); fd.append('parse_mode', 'Markdown')
-      try { await fetch('/api/telegram', { method: 'POST', body: fd }) } catch (e) { }
-      await prosesPesananLokal('MENUNGGU CEK ADMIN PAYPAL'); setIsSending(false); return
-    }
     setIsSending(true); const oid = 'TRX-' + Date.now()
     try {
       const res = await fetch('/api/midtrans', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: oid, gross_amount: total, customer_details: { first_name: customerName, phone: customerWA, email: customerEmail } }) })
       const data = await res.json()
       if (data.token) {
         window.snap.pay(data.token, {
-          onSuccess: async r => { await prosesPesananLokal(`LUNAS (MIDTRANS - ${r.payment_type})`, null, oid); setIsSending(false) },
+          onSuccess: async r => { await prosesPesananLokal(`LUNAS (MIDTRANS)`, null, oid); setIsSending(false) },
           onPending: () => { alert('Selesaikan pembayaran.'); setIsSending(false) },
           onError: () => { alert('Pembayaran Gagal!'); setIsSending(false) },
-          onClose: () => { alert('Pembayaran belum selesai 🥺'); setIsSending(false) },
+          onClose: () => { setShowExitPopup(true); setIsSending(false) },
         })
       } else { alert('Gagal konek Midtrans!'); setIsSending(false) }
     } catch (e) { alert('Gagal menghubungi server.'); setIsSending(false) }
   }
 
   const prosesPesananLokal = async (status, _file = null, tid = null) => {
-    const hwid = '744BC690E35B'; const total = cart.reduce((s, i) => s + i.finalPrice, 0)
+    const total = cart.reduce((s, i) => s + i.finalPrice, 0)
     const trxId = tid || 'TRX-' + Date.now()
-    if (status.includes('LUNAS') || status === 'TRIAL AKTIF') {
-      const items = cart.map(i => `- ${i.name} (${i.durationLabel})`).join('\n')
-      const msg = `✅ *PEMBAYARAN SUKSES*\n💳 ${status}\n👤 ${customerName}\n📱 ${customerWA}\n📧 ${customerEmail}\n💻 ${hwid}\n💰 Rp ${total.toLocaleString()}\n\n${items}`
-      try { await fetch('/api/telegram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: msg, parse_mode: 'Markdown' }) }) } catch (e) { }
-    }
-    const hwidItems = cart.map(c => ({ productName: c.name, duration: c.durationLabel, keyStatus: c.isLifetime ? 'LIFETIME' : 'Menunggu Key WA', isSuccess: !!c.isLifetime, ...c }))
-    const trx = { id: trxId, date: new Date().toLocaleString(), total, masterHwid: hwid, customerName, customerWA, customerEmail, hwidItems }
-    const upd = [trx, ...historyData]; setHistoryData(upd); localStorage.setItem('vinzsky_history', JSON.stringify(upd))
-    await supabase.from('orders').insert([{
-      customer_name: customerName, customer_wa: customerWA, customer_email: customerEmail,
-      master_hwid: hwid, total_price: total, items: cart, created_at: new Date().toISOString(),
-      order_status: status.includes('LUNAS') || status === 'TRIAL AKTIF' ? 'SUCCESS' : 'PENDING',
-      buyer_name: authUser?.user_metadata?.full_name || customerName,
-      buyer_email: authUser?.email || customerEmail,
-      buyer_avatar: authUser?.user_metadata?.avatar_url || null,
-    }])
     const key = 'VINZ-' + Math.random().toString(36).substring(2, 10).toUpperCase()
-    let exp = new Date()
-    if (cart[0].durationCode === '1H') exp.setHours(exp.getHours() + 1)
-    else if (cart[0].durationCode === '7D') exp.setDate(exp.getDate() + 7)
-    else if (cart[0].durationCode === '14D') exp.setDate(exp.getDate() + 14)
-    else if (cart[0].durationCode === '30D') exp.setDate(exp.getDate() + 30)
-    else exp.setFullYear(exp.getFullYear() + 100)
-    await supabase.from('licenses').insert([{ license_key: key, master_hwid: hwid, tier: cart[0].durationCode, expires_at: exp.toISOString(), status: status.includes('LUNAS') || status === 'TRIAL AKTIF' ? 'ACTIVE' : 'PENDING' }])
-    setIsVipMember(true); setVipTierInfo(DURATIONS.find(d => d.code === cart[0].durationCode) || DURATIONS[3])
-    setCart([]); setShowCheckout(false); setBuktiBayar(null); setCustomerName(''); setCustomerWA(''); setCustomerEmail('')
+    
+    const isLifetimeOrder = cart.some(c => c.isLifetime || c.durationCode === 'LIFETIME');
+
+    let durationDays = 30;
+    if (cart[0].durationCode === '1H') durationDays = 1;
+    else if (cart[0].durationCode === '7D') durationDays = 7;
+    else if (cart[0].durationCode === '14D') durationDays = 14;
+    else if (cart[0].durationCode === '30D') durationDays = 30;
+    else if (cart[0].durationCode === 'LIFETIME') durationDays = 36500;
+    else durationDays = 36500;
+
+    if (isLifetimeOrder) {
+      // TABEL BARU KHUSUS TOOLS LIFETIME (G-Drive Link)
+      await supabase.from('lifetime_orders').insert([{
+        order_id: trxId,
+        email: customerEmail || authUser?.email || null,
+        product_name: cart[0].name,
+        price: total,
+        status: status.includes('LUNAS') || status === 'TRIAL AKTIF' ? 'SUCCESS' : 'PENDING',
+        drive_link: cart[0].zipLink || cart[0].pdfLink || 'Link Google Drive Belum Tersedia'
+      }])
+    } else {
+      // TABEL LAMA LISENSI HWID (Video/Photo Upscale)
+      const hwid = 'MENUNGGU-HWID'; 
+      await supabase.from('user_licenses').insert([{
+        user_name: customerName || authUser?.user_metadata?.full_name || 'Guest',
+        user_email: customerEmail || authUser?.email || null,
+        is_guest: !authUser,
+        user_wa: customerWA,
+        license_key: key,
+        hwid: hwid,
+        package_name: cart[0].name,
+        tier_code: cart[0].durationCode,
+        duration_days: durationDays,
+        order_status: status.includes('LUNAS') || status === 'TRIAL AKTIF' ? 'SUCCESS' : 'PENDING',
+        license_status: status.includes('LUNAS') || status === 'TRIAL AKTIF' ? 'ACTIVE' : 'INACTIVE',
+        order_id: trxId
+      }])
+    }
+
+    const hwidItems = cart.map(c => ({ productName: c.name, duration: c.durationLabel, keyStatus: status.includes('LUNAS') || status === 'TRIAL AKTIF' ? (isLifetimeOrder ? 'LIFETIME ACCESS' : key) : 'Menunggu Verifikasi', isSuccess: status.includes('LUNAS') || status === 'TRIAL AKTIF', ...c }))
+    const trx = { id: trxId, date: new Date().toLocaleString(), total, masterHwid: isLifetimeOrder ? 'TANPA-HWID' : 'MENUNGGU-HWID', customerName, customerWA, customerEmail, hwidItems }
+    
+    const upd = [trx, ...historyData]; setHistoryData(upd); localStorage.setItem('vinzsky_history', JSON.stringify(upd))
+    
+    if(typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('new_purchase_fomo', { detail: { name: customerName || authUser?.user_metadata?.full_name || 'Guest User', product: cart[0]?.name || 'Produk VIP' } }));
+    }
+
+    setIsVipMember(true);
+    setCart([]); setShowCheckout(false); setCustomerName(''); setCustomerWA(''); setCustomerEmail('')
     setShowReceipt(trx); playKaChing()
   }
 
-  const handleKlaimKey = (tid, idx) => {
-    const key = window.prompt('Masukkan License Key dari Admin WhatsApp:')
-    if (key?.trim()) {
-      const nd = [...historyData]; const ti = nd.findIndex(t => t.id === tid)
-      if (ti !== -1) { nd[ti].hwidItems[idx].keyStatus = key; nd[ti].hwidItems[idx].isSuccess = true; setHistoryData(nd); localStorage.setItem('vinzsky_history', JSON.stringify(nd)); alert('🎉 License Key Aktif!'); setActiveMenu(null); setReviewData({ trxId: tid, productName: nd[ti].hwidItems[idx].productName, customerName: nd[ti].customerName }) }
-    }
-  }
-
-  const submitReview = async () => {
-    if (!reviewText.trim()) return alert('Tulis dulu ulasannya Bosku!')
-    setIsSending(true)
-    const rev = { name: reviewData.customerName || 'Guest', product: reviewData.productName || 'AI', rating, review_text: reviewText }
-    try {
-      await fetch('/api/telegram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: `🌟 *REVIEW*\n${rev.name}\n${rev.product}\n⭐${rev.rating}/5\n"${rev.review_text}"`, parse_mode: 'Markdown' }) })
-      await supabase.from('reviews').insert([{
-        ...rev,
-        buyer_avatar: authUser?.user_metadata?.avatar_url || null,
-        buyer_email: authUser?.email || null,
-        tier_code: isVipMember && vipTierInfo ? vipTierInfo.code : '7D',
-      }])
-      setPublicReviews(p => [rev, ...p]); addNotif('Review berhasil dipublikasi!'); setReviewData(null); setReviewText(''); setRating(5)
-    } catch (e) { alert('Gagal kirim review.') }
-    setIsSending(false)
-  }
-
-  const handleSendChat = async e => {
-    e.preventDefault(); if (!chatInput.trim()) return
-    const m = { sender: 'user', text: chatInput }; setChatMessages(p => [...p, m]); setChatInput('')
-    try { await fetch('/api/telegram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: `💬 *LIVE CHAT*\n"${m.text}"`, parse_mode: 'Markdown' }) }) } catch (e) { }
+  const handleManualSuccess = (data) => {
+    const upd = [data, ...historyData]; 
+    setHistoryData(upd); 
+    localStorage.setItem('vinzsky_history', JSON.stringify(upd));
+    setShowManualCheckout(false); 
+    setCart([]); 
+    playKaChing()
+    setShowReceipt(data)
   }
 
   const filtered = allProducts.filter(p => { const s = (searchQuery || '').toLowerCase(); return (p.name || '').toLowerCase().includes(s) || (p.category || '').toLowerCase().includes(s) })
 
-  // Fungsi Render Avatar buat Notifikasi
   const renderAvatar = (name, url) => {
     if (url) return <img src={url} className="w-12 h-12 rounded-full border-2 border-red-600 shadow-[0_0_15px_rgba(239,68,68,0.8)] object-cover flex-shrink-0" alt="avatar" />
     return <div className="w-12 h-12 rounded-full flex items-center justify-center font-black text-xl text-white bg-gradient-to-br from-red-700 to-black border-2 border-red-600 shadow-[0_0_15px_rgba(239,68,68,0.8)] flex-shrink-0">{(name || 'G')[0].toUpperCase()}</div>
@@ -794,7 +707,6 @@ export default function Home() {
     <div className="relative min-h-screen overflow-x-hidden font-sans text-white" style={{ background: 'linear-gradient(135deg, #000008 0%, #050010 30%, #080018 60%, #030010 100%)' }}>
       <GS />
 
-      {/* 🌌 GALAXY BIMA SAKTI FULL CANVAS + VIDEO 🌌 */}
       <GalaxyCanvas />
       <div className="sstar" /><div className="sstar" /><div className="sstar" />
       <div className="sstar" /><div className="sstar" /><div className="sstar" />
@@ -804,11 +716,9 @@ export default function Home() {
       </video>
       <div className="fixed inset-0 z-0 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(0,0,20,0.5) 0%, rgba(5,0,20,0.2) 40%, rgba(5,0,20,0.2) 60%, rgba(0,0,20,0.5) 100%)' }}></div>
 
-      {/* 🔥 KOTAK NOTIFIKASI FOMO (POJOK KIRI ATAS BAWAH NAVBAR) 🔥 */}
       {!isAnyModalOpen && activeFomo && (
         <div className={`fixed z-[95] w-[320px] md:w-[360px] ${fomoLeaving ? 'fomo-slide-out' : 'fomo-slide-in'}`} style={{ top: '85px', left: '16px' }}>
           <div className="relative rounded-2xl p-4 overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(20,0,0,0.95), rgba(0,0,0,0.98))', backdropFilter: 'blur(24px)', border: '1px solid rgba(239,68,68,0.5)', boxShadow: '0 0 30px rgba(220,38,38,0.4), inset 0 0 20px rgba(220,38,38,0.2)' }}>
-            {/* Efek Garis Menyala Atas */}
             <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, transparent, #ef4444, #b91c1c, transparent)' }} />
 
             <div className="flex items-center gap-4 relative z-10">
@@ -828,8 +738,6 @@ export default function Home() {
                 </div>
               </div>
             </div>
-
-            {/* Animasi Radar Pulse di Belakang */}
             <div className="absolute -right-10 -bottom-10 w-32 h-32 rounded-full bg-red-600/10 blur-xl animate-pulse pointer-events-none" />
           </div>
         </div>
@@ -863,30 +771,37 @@ export default function Home() {
                   </div>
                   <h2 className="text-xl font-black text-white mb-0.5">{authUser.user_metadata?.full_name || 'Member VinzSky-shopID'}</h2>
                   <p className="text-xs text-gray-400 mb-2">{authUser.email}</p>
+                  
                   <div className="flex flex-col items-center gap-3 mb-6">
                     {isAdminUser(authUser) ? (
                       <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.4)', boxShadow: '0 0 12px rgba(239,68,68,.3)' }}>
                         <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                        <span className="text-[11px] font-black text-red-400 uppercase tracking-widest">⚡ ADMIN</span>
+                        <span className="text-[11px] font-black text-red-400 uppercase tracking-widest">⚡ ADMIN PORTAL</span>
+                      </div>
+                    ) : userActiveTier ? (
+                      <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full shadow-lg" style={{ background: userActiveTier.bg, border: `1px solid ${userActiveTier.color}` }}>
+                        <DiamondIcon color={userActiveTier.color} glow={userActiveTier.glow} size={14} animate={true} />
+                        <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: userActiveTier.color }}>VIP {userActiveTier.tierName}</span>
                       </div>
                     ) : (
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full" style={{ background: 'rgba(34,197,94,.12)', border: '1px solid rgba(34,197,94,.3)' }}>
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                        <span className="text-[10px] font-black text-green-400 uppercase tracking-widest">MEMBER AKTIF</span>
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)' }}>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">FREE MEMBER</span>
                       </div>
                     )}
                   </div>
+
                   <div className="space-y-2 mb-6">
                     {(isAdminUser(authUser) ? [
                       { icon: <ShieldCheck size={20} />, label: 'Admin Portal', sub: 'Dashboard & kelola toko', action: () => { window.open('/admin', '_blank'); setShowAuthModal(false) } },
                       { icon: <Download size={20} />, label: 'Download Software', sub: 'Pusat unduhan tools & panduan', action: () => { window.open('https://www.vinzsky.shop/download', '_blank'); setShowAuthModal(false) } },
-                      { icon: <Key size={20} />, label: 'Data Lisensi HWID', sub: 'Cek license key aktif Anda', action: () => { setActiveMenu('hwid'); setShowAuthModal(false) } },
-                      { icon: <History size={20} />, label: 'G-Drive & Riwayat', sub: 'Download software & invoice', action: () => { setActiveMenu('history'); setShowAuthModal(false) } }
+                      { icon: <Key size={20} />, label: 'Data Lisensi HWID', sub: 'Cek license key aktif Anda', action: () => { setActiveMenu(null); setShowOrderStatus(true); setShowAuthModal(false) } },
+                      { icon: <HardDrive size={20} />, label: 'Tool-Lifetime', sub: 'Akses link Google Drive & Riwayat', action: () => { router.push('/tools-lifetime'); setShowAuthModal(false) } },
+                      { icon: <ShoppingCart size={20} />, label: 'Status Pesanan', sub: 'Cek progress & status pembelian', action: () => { setShowOrderStatus(true); setShowAuthModal(false) } }
                     ] : [
                       { icon: <Download size={20} />, label: 'Download Software', sub: 'Pusat unduhan tools & panduan', action: () => { window.open('https://www.vinzsky.shop/download', '_blank'); setShowAuthModal(false) } },
-                      { icon: <Key size={20} />, label: 'Data Lisensi HWID', sub: 'Cek license key aktif Anda', action: () => { setActiveMenu('hwid'); setShowAuthModal(false) } },
-                      { icon: <ShoppingCart size={20} />, label: 'Status Pesanan', sub: 'Cek progress & status pembelian', action: () => { setShowOrderStatus(true); setShowAuthModal(false) } },
-                      { icon: <History size={20} />, label: 'G-Drive & Riwayat', sub: 'Download software & invoice', action: () => { setActiveMenu('history'); setShowAuthModal(false) } }
+                      { icon: <Key size={20} />, label: 'Data Lisensi HWID', sub: 'Cek license key aktif Anda', action: () => { setActiveMenu(null); setShowOrderStatus(true); setShowAuthModal(false) } },
+                      { icon: <HardDrive size={20} />, label: 'Tool-Lifetime', sub: 'Akses link Google Drive & Riwayat', action: () => { router.push('/tools-lifetime'); setShowAuthModal(false) } },
+                      { icon: <ShoppingCart size={20} />, label: 'Status Pesanan', sub: 'Cek progress & status pembelian', action: () => { setShowOrderStatus(true); setShowAuthModal(false) } }
                     ]).map((item, i) => (
                       <button key={i} onClick={item.action} className="w-full py-3 px-4 rounded-xl flex items-center gap-3 transition-all text-left ninja-menu-hover" style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
                         <span className="text-xl ninja-icon text-red-400">{item.icon}</span>
@@ -942,22 +857,6 @@ export default function Home() {
         </div>
       )}
 
-      {showExitPopup && (
-        <div className="m-overlay" style={{ zIndex: 99998 }}>
-          <div className="m-box max-w-lg text-center overflow-hidden exit-pop" style={{ borderRadius: '3rem', background: 'rgba(15,0,0,.95)', backdropFilter: 'blur(32px)', border: '1px solid rgba(239,68,68,.5)', boxShadow: '0 0 80px rgba(220,38,38,.5)' }}>
-            <div className="mscroll p-10">
-              <button onClick={() => { setShowExitPopup(false); setSelectedProduct(null) }} className="absolute top-6 right-6 rounded-full p-2 transition-all hover:bg-white/10 ninja-btn-hover" style={{ background: 'rgba(255,255,255,.07)' }}><X size={18} /></button>
-              <div className="relative mx-auto mb-6 w-20 h-20"><div className="absolute inset-0 rounded-full" style={{ background: 'rgba(239,68,68,.2)', boxShadow: '0 0 30px rgba(239,68,68,.6)', animation: 'visitorPulse 1s ease infinite' }} /><div className="absolute inset-0 flex items-center justify-center"><Percent size={44} className="text-red-500" /></div></div>
-              <h2 className="text-3xl font-black mb-2 uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-500">TUNGGU BOSKU!</h2>
-              <p className="text-sm text-gray-300 mb-3 font-bold">Jangan pergi dulu! Ambil</p>
-              <p className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-yellow-500 mb-6 animate-pulse">EKSTRA DISKON 10%</p>
-              <button onClick={() => { setHasExitPromo(true); setShowExitPopup(false); playPop() }} className="w-full py-5 rounded-[1.5rem] font-black text-xl transition-all ninja-btn-hover" style={{ background: 'linear-gradient(135deg,#991b1b,#ef4444)', boxShadow: '0 10px 30px rgba(239,68,68,.55)' }}>KLAIM DISKON SEKARANG 🎁</button>
-              <button onClick={() => { setShowExitPopup(false); setSelectedProduct(null) }} className="mt-4 text-[10px] text-gray-600 font-bold uppercase block mx-auto transition-colors ninja-menu-hover">Tidak, saya tidak mau hemat</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <nav className="fixed top-0 left-0 w-full z-[80] glass-nav">
         <div className="py-1.5 px-4 text-center flex justify-center items-center gap-2" style={{ background: 'linear-gradient(90deg,#7f1d1d,#000000,#7f1d1d)', borderBottom: '1px solid rgba(239,68,68,.4)' }}>
           <Flame size={14} className="text-red-500" style={{ filter: 'drop-shadow(0 0 6px #ef4444)', animation: 'fireFlicker .7s ease infinite' }} />
@@ -985,9 +884,16 @@ export default function Home() {
                   ? <img src={authUser.user_metadata.avatar_url} className="w-6 h-6 rounded-full object-cover flex-shrink-0" style={{ border: '1.5px solid rgba(239,68,68,.8)' }} alt="av" />
                   : <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0" style={{ background: 'linear-gradient(135deg,#991b1b,#000000)' }}>{(authUser.user_metadata?.full_name || authUser.email || 'U')[0].toUpperCase()}</div>
                 }
-                <span className="text-[10px] font-black truncate max-w-[80px]" style={{ color: '#fca5a5' }}>
-                  {isAdminUser(authUser) ? 'ADMIN' : authUser.user_metadata?.full_name?.split(' ')[0] || authUser.email?.split('@')[0]}
-                </span>
+                <div className="flex flex-col items-start leading-none ml-1">
+                  <span className="text-[10px] font-black truncate max-w-[80px]" style={{ color: '#fca5a5' }}>
+                    {isAdminUser(authUser) ? 'ADMIN' : authUser.user_metadata?.full_name?.split(' ')[0] || authUser.email?.split('@')[0]}
+                  </span>
+                  {userActiveTier && !isAdminUser(authUser) && (
+                    <span className="text-[8px] font-black uppercase tracking-widest mt-0.5" style={{ color: userActiveTier.color }}>
+                      {userActiveTier.tierName}
+                    </span>
+                  )}
+                </div>
               </> : <><LogIn size={14} className="text-red-400" /><span className="text-[10px] font-black uppercase tracking-widest text-red-200">Login</span></>}
             </button>
             <div className="relative cursor-pointer transition-all ninja-menu-hover p-1 rounded-full" onClick={() => { setShowNotif(!showNotif); setUnreadCount(0) }}>
@@ -1042,13 +948,13 @@ export default function Home() {
                       <div className="flex-1"><p className="text-[12px] font-black text-red-400">Admin Portal</p><p className="text-[9px] text-red-300">Dashboard toko</p></div>
                     </button>
                   )}
-                  <button onClick={() => { setActiveMenu('hwid'); setIsMobileMenuOpen(false) }} className="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 font-bold text-gray-300 transition-all ninja-menu-hover">
+                  <button onClick={() => { setActiveMenu(null); setShowOrderStatus(true); setIsMobileMenuOpen(false) }} className="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 font-bold text-gray-300 transition-all ninja-menu-hover">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)' }}><Key size={15} className="text-red-500 ninja-icon" /></div>
                     <div><p className="text-[12px] font-black">Data Lisensi HWID</p><p className="text-[9px] text-gray-500">Cek license key aktif</p></div>
                   </button>
-                  <button onClick={() => { setActiveMenu('history'); setIsMobileMenuOpen(false) }} className="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 font-bold text-gray-300 transition-all ninja-menu-hover">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)' }}><History size={15} className="text-red-500 ninja-icon" /></div>
-                    <div><p className="text-[12px] font-black">G-Drive & Riwayat</p><p className="text-[9px] text-gray-500">Riwayat file zip & invoice</p></div>
+                  <button onClick={() => { router.push('/tools-lifetime'); setIsMobileMenuOpen(false) }} className="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 font-bold text-gray-300 transition-all ninja-menu-hover">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)' }}><HardDrive size={15} className="text-red-500 ninja-icon" /></div>
+                    <div><p className="text-[12px] font-black">Tool-Lifetime</p><p className="text-[9px] text-gray-500">Riwayat link Google Drive</p></div>
                   </button>
                   <button onClick={() => { setShowOrderStatus(true); setIsMobileMenuOpen(false) }} className="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 font-bold text-gray-300 transition-all ninja-menu-hover">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)' }}><ShoppingCart size={15} className="text-red-500 ninja-icon" /></div>
@@ -1086,7 +992,6 @@ export default function Home() {
       )}
 
       <main className="relative z-10 max-w-6xl mx-auto p-4 md:p-6 pt-40 md:pt-36 min-h-screen">
-        {/* HERO BANNER */}
         <div className="reveal opacity-0 translate-y-20 mb-16 rounded-[2rem] overflow-hidden relative shadow-[0_0_50px_rgba(220,38,38,.4)]" style={{ height: '16rem', border: '1px solid rgba(239,68,68,.35)', background: 'rgba(10,0,20,0.2)', backdropFilter: 'blur(4px)' }}>
           <Swiper modules={[Autoplay, EffectFade]} effect="fade" autoplay={{ delay: 3500, disableOnInteraction: false }} speed={1000} loop className="h-full w-full">
             {[{ src: '/produk1.jpg', tag: 'UPDATE V2.0', tagC: 'bg-red-700 shadow-[0_0_15px_#b91c1c]', title: 'UPSCALE ', hi: 'VIDEO 4K', hiC: 'text-red-500' }, { src: '/produk2.jpg', tag: 'AI POWERED', tagC: 'bg-red-800 shadow-[0_0_15px_#991b1b]', title: 'ULTRA HIGH ', hi: 'PHOTO', hiC: 'text-red-600' }, { src: '/produk3.jpg', tag: 'ADOBE STOCK', tagC: 'bg-black border border-red-500 shadow-[0_0_15px_#ef4444]', title: 'TOOLS ', hi: 'PREMIUM', hiC: 'text-red-400' }].map((sl, i) => (
@@ -1124,13 +1029,17 @@ export default function Home() {
               const fp = calcPrice(p.price, p); const pvc = viewCounts[p.id] || 0
               return (
                 <div key={p.id} className="reveal opacity-0 translate-y-20">
-                  {/* INI KARTU PRODUK DENGAN NINJA AURA HOVER */}
-                  <div onClick={() => { setSelectedProduct(p); setSelectedDuration(DURATIONS[3]); trackProductView(p.id) }} className="group relative rounded-[2.5rem] overflow-hidden cursor-pointer shadow-2xl flex flex-col h-full ninja-card-hover" style={{ background: 'linear-gradient(135deg, rgba(20,0,10,0.35), rgba(5,0,15,0.25))', backdropFilter: 'blur(20px) saturate(180%)', border: '1px solid rgba(239,68,68,.4)', boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+                  <div onClick={() => { 
+                      setSelectedProduct(p); 
+                      // OTOMATIS UBAH LABEL DURASI JADI LIFETIME KALAU PRODUKNYA LIFETIME
+                      setSelectedDuration(p.isLifetime ? { label: 'Akses Selamanya', code: 'LIFETIME', multiplier: 1, color: 'text-amber-500', bg: 'bg-amber-500/20', border: 'border-amber-500/50', tierName: 'Lifetime', diamondColor: '#f59e0b', diamondGlow: 'rgba(245,158,11,.7)', diamondBg: 'rgba(245,158,11,.15)' } : DURATIONS[3]); 
+                      trackProductView(p.id);
+                  }} className="group relative rounded-[2.5rem] overflow-hidden cursor-pointer shadow-2xl flex flex-col h-full ninja-card-hover" style={{ background: 'linear-gradient(135deg, rgba(20,0,10,0.35), rgba(5,0,15,0.25))', backdropFilter: 'blur(20px) saturate(180%)', border: '1px solid rgba(239,68,68,.4)', boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
 
                     <div className="overflow-hidden relative bg-black" style={{ height: '14rem', borderBottom: '1px solid rgba(239,68,68,0.4)' }}>
                       <div className="absolute inset-0 z-10 pointer-events-none" style={{ background: 'linear-gradient(to top,rgba(15,0,0,1) 0%,rgba(15,0,0,.2) 60%,transparent 100%)' }} />
                       {p.videoUrl && p.videoUrl !== '' && p.videoUrl !== '#'
-                        ? <video src={p.videoUrl} autoPlay loop muted playsInline preload="metadata" className="w-full h-full object-cover opacity-60 pointer-events-none transition-transform duration-700 group-hover:scale-110 mix-blend-luminosity group-hover:mix-blend-normal" style={{ willChange: 'transform', transform: 'translateZ(0)' }} onCanPlay={e => e.target.play().catch(() => { })} onError={e => { const parent = e.target.parentNode; const img = document.createElement('img'); img.src = p.image || '/produk1.jpg'; img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;opacity:.5;mix-blend-mode:luminosity;transition:all 0.7s;'; parent.appendChild(img); e.target.style.display = 'none'; }} />
+                        ? <video key={p.videoUrl} src={p.videoUrl} autoPlay loop muted playsInline preload="metadata" className="w-full h-full object-cover opacity-60 pointer-events-none transition-transform duration-700 group-hover:scale-110 mix-blend-luminosity group-hover:mix-blend-normal" style={{ willChange: 'transform', transform: 'translateZ(0)' }} onCanPlay={e => e.target.play().catch(() => { })} onError={e => { const parent = e.target.parentNode; const img = document.createElement('img'); img.src = p.image || '/produk1.jpg'; img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;opacity:.5;mix-blend-mode:luminosity;transition:all 0.7s;'; parent.appendChild(img); e.target.style.display = 'none'; }} />
                         : <img src={p.image} onError={e => { e.target.onerror = null; e.target.src = '/produk1.jpg' }} className="w-full h-full object-cover opacity-60 transition-all duration-700 group-hover:scale-110 mix-blend-luminosity group-hover:mix-blend-normal" />
                       }
                       <span className="absolute top-4 right-4 z-20 text-[9px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest flex items-center gap-1.5" style={{ background: 'rgba(0,0,0,.80)', backdropFilter: 'blur(12px)', border: '1px solid rgba(239,68,68,.6)', color: '#fca5a5', boxShadow: '0 0 15px rgba(239,68,68,0.8)' }}><Crown size={12} />VIP Engine</span>
@@ -1171,8 +1080,19 @@ export default function Home() {
             {publicReviews.length === 0 ? <div className="w-full text-center py-10 col-span-full rounded-[2rem]" style={{ border: '1px dashed rgba(239,68,68,.4)' }}><p className="text-red-400 italic font-bold">Belum ada ulasan VinzSky-shopID.</p></div> : publicReviews.map((rev, i) => (
               <div key={i} className="reveal opacity-0 translate-y-20">
                 <div className="p-8 rounded-[2rem] h-full flex flex-col shadow-2xl ninja-card-hover" style={{ background: 'linear-gradient(135deg, rgba(15,0,10,0.30), rgba(5,0,15,0.20))', backdropFilter: 'blur(20px) saturate(200%)', border: '1px solid rgba(239,68,68,.35)', boxShadow: '0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+                  
+                  {/* BINTANG RATING */}
                   <div className="flex items-center gap-2 mb-4">{[...Array(5)].map((_, j) => <Star key={j} size={18} className={j < (rev.rating || 5) ? 'text-yellow-500 fill-yellow-500' : 'text-red-900'} style={j < (rev.rating || 5) ? { filter: 'drop-shadow(0 0 8px #eab308)' } : {}} />)}</div>
-                  <p className="text-sm text-gray-200 italic mb-6 leading-relaxed font-bold">"{rev.review_text || rev.text || '...'}"</p>
+                  
+                  {/* TEKS ULASAN */}
+                  <p className="text-sm text-gray-200 italic mb-4 leading-relaxed font-bold">"{rev.review_text || rev.text || '...'}"</p>
+
+                  {rev.review_image_url && (
+                    <div className="w-full mt-4 mb-6 rounded-xl overflow-hidden border border-white/10 bg-black/50 p-2 flex items-center justify-center">
+                      <img src={rev.review_image_url} alt="Bukti Ulasan" className="w-full h-auto max-h-60 object-contain rounded-lg transition-transform hover:scale-105 duration-500" />
+                    </div>
+                  )}
+
                   <div className="flex justify-between items-end mt-auto pt-4 border-t border-red-500/20">
                     <div className="flex items-center gap-3">
                       {rev.buyer_avatar
@@ -1183,6 +1103,7 @@ export default function Home() {
                       }
                       <div>
                         <p className="font-black text-sm text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">{rev.name || 'Member VinzSky-shopID'}</p>
+                        <p className="text-[10px] text-gray-400 font-bold mt-0.5 mb-1">{timeAgo(rev.created_at)}</p>
                         <div className="flex items-center gap-2 mt-1">
                           {(() => {
                             const t = DURATIONS.find(d => d.code === (rev.tier_code || '7D')) || DURATIONS[1]; return (
@@ -1208,11 +1129,12 @@ export default function Home() {
       </main>
 
       <footer className="relative z-10 py-16 text-center mt-10" style={{ borderTop: '1px solid rgba(239,68,68,.3)', background: 'rgba(2,0,10,.50)', backdropFilter: 'blur(24px)' }}>
-        <p className="text-[11px] text-red-500/60 tracking-[6px] uppercase font-black hover:text-red-400 transition-colors cursor-default drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]">Tools By | VinzSky-shopID | software engineer | since 2026</p>
-        <p className="text-[9px] text-red-700 mt-2 font-bold tracking-widest">NINJA AURA EDITION</p>
+        <p className="text-[11px] text-red-500/60 tracking-[6px] uppercase font-black hover:text-red-400 transition-colors cursor-default drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]">
+          Tools By | VinzSky-ShopID Software | software engineer | since 2026
+        </p>
+        <p className="text-[9px] text-red-700 mt-2 font-bold tracking-widest">LIMITED-EDITION</p>
       </footer>
 
-      {/* --- MODAL DETAIL PRODUK --- */}
       {selectedProduct && (
         <div className="m-overlay">
           <div className="m-box rounded-[3rem] shadow-[0_0_100px_rgba(220,38,38,.5)]" style={{ maxWidth: '1000px', background: 'rgba(15,0,0,.92)', backdropFilter: 'blur(32px) saturate(200%)', border: '1px solid rgba(239,68,68,.6)', display: 'flex', flexDirection: 'column' }}>
@@ -1250,7 +1172,7 @@ export default function Home() {
                   <p className="text-sm text-gray-200 leading-relaxed font-bold">{selectedProduct.desc}</p>
                 </div>
                 {selectedProduct.isLifetime ? (
-                  <div className="p-4 rounded-2xl text-center mb-5" style={{ background: 'rgba(0,80,40,.30)', border: '2px solid rgba(34,197,94,.5)' }}><p className="text-green-400 font-black text-lg uppercase flex justify-center items-center gap-3 drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]"><CheckCircle size={24} style={{ filter: 'drop-shadow(0 0 8px #4ade80)' }} />LISENSI LIFETIME UNLOCKED</p></div>
+                  <div className="p-4 rounded-2xl text-center mb-5" style={{ background: 'rgba(245,158,11,.15)', border: '2px solid rgba(245,158,11,.5)' }}><p className="text-amber-500 font-black text-lg uppercase flex justify-center items-center gap-3 drop-shadow-[0_0_10px_rgba(245,158,11,0.6)]"><Crown size={24} style={{ filter: 'drop-shadow(0 0 8px #f59e0b)' }} />LISENSI LIFETIME UNLOCKED</p></div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     {DURATIONS.map(d => (
@@ -1284,7 +1206,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* --- MODAL CHECKOUT --- */}
       {showCheckout && (
         <div className="m-overlay">
           <div className="m-box w-full max-w-md rounded-[2.5rem]" style={{ background: 'rgba(15,0,0,.95)', backdropFilter: 'blur(32px) saturate(200%)', border: '1px solid rgba(239,68,68,.6)', boxShadow: '0 0 80px rgba(220,38,38,.4)' }}>
@@ -1319,103 +1240,119 @@ export default function Home() {
               </div>
               {cart.reduce((s, i) => s + i.finalPrice, 0) > 0 && (
                 <>
-                  <div className="grid grid-cols-2 gap-4 mb-5">
-                    {[{ key: 'midtrans', icon: <Landmark size={24} />, label: 'QRIS / VA / E-Wallet' }, { key: 'paypal', icon: <Wallet size={24} />, label: 'PayPal' }].map(pm => (
-                      <button key={pm.key} onClick={() => setPayMethod(pm.key)} className={`font-black py-4 px-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all text-xs uppercase tracking-widest shadow-lg ${payMethod === pm.key ? 'bg-red-700 text-white border-2 border-red-500 scale-[1.03] shadow-[0_0_20px_rgba(239,68,68,.8)]' : 'text-red-200 border border-red-500/30 bg-black/60 ninja-btn-hover'}`}>{pm.icon}{pm.label}</button>
+                  <div className="grid grid-cols-2 gap-2 mb-5">
+                    {[{ key: 'midtrans', icon: <Landmark size={24} />, label: 'Otomatis' }, { key: 'manual', icon: <ShieldCheck size={24} />, label: 'Manual/DANA' }].map(pm => (
+                      <button key={pm.key} 
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); setPayMethod(pm.key); }} 
+                        className={`font-black py-4 px-2 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all text-[10px] uppercase tracking-widest shadow-lg ${payMethod === pm.key ? 'bg-red-700 text-white border-2 border-red-500 scale-[1.03] shadow-[0_0_20px_rgba(239,68,68,.8)]' : 'text-red-200 border border-red-500/30 bg-black/60 ninja-btn-hover'}`}>
+                          {pm.icon}{pm.label}
+                      </button>
                     ))}
                   </div>
+                  
                   <div className="rounded-3xl p-6 mb-5 text-center shadow-inner" style={{ background: 'rgba(0,0,0,.6)', border: '1px solid rgba(239,68,68,.3)' }}>
                     {payMethod === 'midtrans' && <div className="flex flex-col items-center"><ShieldCheck size={48} className="text-emerald-500 mb-4 drop-shadow-[0_0_15px_rgba(34,197,94,.8)]" /><p className="text-[11px] text-white mb-2 font-black uppercase tracking-widest drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]">Secure Auto-Payment</p><p className="text-sm text-gray-300 leading-relaxed font-bold">QRIS, Virtual Account, atau E-Wallet pilihan Anda.</p></div>}
-                    {payMethod === 'paypal' && <div className="flex flex-col items-center"><Wallet size={48} className="text-blue-400 mb-4 drop-shadow-[0_0_15px_rgba(96,165,250,.6)]" /><p className="text-[11px] text-white mb-2 font-black uppercase tracking-widest">Send Payment To:</p><p className="text-xl font-black tracking-widest mb-5 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">@moh.bashory1992</p><a href={`https://paypal.me/mohbashory1992/${Math.ceil(cart.reduce((s, i) => s + i.finalPrice, 0) / 15500)}USD`} target="_blank" className="bg-[#0070ba] text-white text-sm font-black py-3 px-8 rounded-full transition-colors flex items-center gap-2 shadow-lg ninja-btn-hover border border-[#003087]">Buka Aplikasi PayPal</a><p className="text-[9px] text-gray-500 mt-5 italic font-bold">*Screenshot bukti transfer setelah bayar</p></div>}
+                    {payMethod === 'manual' && <div className="flex flex-col items-center"><ShieldCheck size={48} className="text-blue-400 mb-4" /><p className="text-[11px] text-white mb-2 font-black uppercase">Transfer Bank / DANA</p><p className="text-sm text-gray-300 font-bold text-center">0% Biaya Admin.<br/>Lanjut untuk upload bukti bayar.</p></div>}
                   </div>
-                  {payMethod === 'paypal' && <div className="mb-5 p-5 rounded-2xl group shadow-inner ninja-card-hover" style={{ background: 'rgba(0,0,0,.6)', border: '1px dashed rgba(239,68,68,.8)' }}><label htmlFor="file-upload" className="flex items-center justify-center cursor-pointer"><div className="flex items-center gap-3 text-sm text-red-500 group-hover:text-red-400 transition-colors font-black uppercase tracking-widest drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]"><Upload size={24} />{buktiBayar ? <span className="text-emerald-400 truncate max-w-[200px]">{buktiBayar.name}</span> : 'Upload Bukti Bayar'}</div></label><input id="file-upload" type="file" accept="image/*" className="hidden" onChange={e => setBuktiBayar(e.target.files[0])} /></div>}
                 </>
               )}
-              <button onClick={eksekusiPembayaran} disabled={isSending || cart.length === 0} className="w-full py-5 rounded-[1.5rem] font-black text-xl text-white transition-all disabled:opacity-50 flex items-center justify-center gap-3 hover:scale-[1.03] uppercase tracking-widest shadow-2xl ninja-btn-hover" style={{ background: 'linear-gradient(135deg,#991b1b,#ef4444)', boxShadow: '0 10px 30px rgba(239,68,68,.6)' }}>
+              
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (cart.length === 0) return;
+                  if (payMethod === 'manual') {
+                    setShowCheckout(false); 
+                    setTimeout(() => setShowManualCheckout(true), 150); 
+                  } else {
+                    eksekusiPembayaran();
+                  }
+                }} 
+                disabled={isSending || cart.length === 0} 
+                className="w-full py-5 rounded-[1.5rem] font-black text-xl text-white transition-all disabled:opacity-50 flex items-center justify-center gap-3 hover:scale-[1.03] uppercase tracking-widest shadow-2xl ninja-btn-hover" style={{ background: 'linear-gradient(135deg,#991b1b,#ef4444)', boxShadow: '0 10px 30px rgba(239,68,68,.6)' }}
+              >
                 {isSending ? <Clock className="animate-spin" size={24} /> : <Send size={24} />}
-                {isSending ? 'Processing...' : (cart.reduce((s, i) => s + i.finalPrice, 0) > 0 ? (payMethod === 'midtrans' ? 'BAYAR OTOMATIS' : 'KONFIRMASI PAYPAL') : 'KLAIM TRIAL GRATIS')}
+                {isSending ? 'Processing...' : (cart.reduce((s, i) => s + i.finalPrice, 0) === 0 ? 'KLAIM TRIAL GRATIS' : payMethod === 'manual' ? 'LANJUT TRANSFER MANUAL' : 'BAYAR OTOMATIS')}
               </button>
-              <button onClick={clearCart} className="w-full mt-5 py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 text-white transition-all uppercase tracking-widest border border-red-600 ninja-btn-hover" style={{ background: 'rgba(220,38,38,0.2)' }}><Trash2 size={16} />Kosongkan Semua Keranjang</button>
+
+              <button type="button" onClick={clearCart} className="w-full mt-5 py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 text-white transition-all uppercase tracking-widest border border-red-600 ninja-btn-hover" style={{ background: 'rgba(220,38,38,0.2)' }}><Trash2 size={16} />Kosongkan Semua Keranjang</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- MODAL HWID LISENSI --- */}
-      {activeMenu === 'hwid' && (
-        <div className="m-overlay"><div className="m-box w-full max-w-2xl rounded-[2.5rem]" style={{ background: 'rgba(15,0,0,.92)', backdropFilter: 'blur(28px)', border: '1px solid rgba(239,68,68,.5)', boxShadow: '0 0 80px rgba(220,38,38,.4)' }}>
-          <div className="flex justify-between items-center p-6 pb-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(239,68,68,.3)' }}><h2 className="text-2xl font-black flex gap-3 items-center text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]"><Key />Data Lisensi HWID</h2><button className="rounded-full p-2 hover:bg-white/10 ninja-btn-hover" style={{ background: 'rgba(239,68,68,.2)', border: '1px solid rgba(239,68,68,.5)' }} onClick={() => setActiveMenu(null)}><X size={18} /></button></div>
-          <div className="mscroll p-6 space-y-6" style={{ maxHeight: 'calc(92vh - 72px)' }}>
-            {historyData.length === 0 ? <div className="text-center py-20"><Key size={48} className="mx-auto text-red-900 mb-4" /><p className="text-red-500 font-black italic">BELUM ADA DATA LISENSI</p></div> : historyData.map(trx => (
-              <div key={trx.id} className="p-6 rounded-[2rem] ninja-card-hover" style={{ background: 'rgba(0,0,0,.6)', border: '1px solid rgba(239,68,68,.3)' }}>
-                <div className="p-5 rounded-2xl text-center mb-5 shadow-[inset_0_0_15px_rgba(220,38,38,0.2)]" style={{ background: 'rgba(20,0,0,.80)', border: '1px solid rgba(239,68,68,.5)' }}><p className="text-[10px] text-red-400 font-bold mb-2 uppercase tracking-widest">Master HWID Device:</p><code className="text-2xl md:text-3xl font-black tracking-wider text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">{trx.masterHwid}</code></div>
-                {trx.hwidItems.map((hw, idx) => (
-                  <div key={idx} className="flex justify-between items-center p-4 rounded-2xl mb-2" style={{ background: 'rgba(0,0,0,.8)', border: `1px solid ${hw.isSuccess ? 'rgba(34,197,94,.5)' : 'rgba(239,68,68,.3)'}` }}>
-                    <div className="flex flex-col"><span className="text-sm font-black text-gray-200">{hw.productName}</span><span className={`text-[10px] ${hw.color || 'text-gray-500'} ${hw.bg || ''} border ${hw.border || 'border-red-500/30'} w-fit px-2 py-0.5 rounded mt-1 flex items-center gap-1`}><Crown size={10} />{hw.tierName || 'Standard'} - {hw.duration}</span></div>
-                    {hw.isLifetime ? <div className="text-right"><p className="text-[8px] text-green-500 font-black uppercase mb-1 drop-shadow-[0_0_5px_rgba(34,197,94,0.8)]">AKTIF</p><code className="text-xs font-black text-green-400 px-3 py-1 rounded-lg" style={{ background: 'rgba(34,197,94,.10)', border: '1px solid rgba(34,197,94,.5)' }}>LIFETIME</code></div> : hw.isSuccess ? <div className="text-right"><p className="text-[8px] text-green-500 font-black uppercase mb-1 drop-shadow-[0_0_5px_rgba(34,197,94,0.8)]">AKTIF</p><code className="text-sm font-black text-green-400 px-3 py-1 rounded-lg" style={{ background: 'rgba(34,197,94,.10)', border: '1px solid rgba(34,197,94,.5)' }}>{hw.keyStatus}</code></div> : <button onClick={() => handleKlaimKey(trx.id, idx)} className="text-[10px] bg-red-700 text-white px-4 py-2 rounded-xl font-black uppercase transition-all ninja-btn-hover border border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]">Klaim Key</button>}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div></div>
-      )}
-
-      {activeMenu === 'history' && (
-        <div className="m-overlay"><div className="m-box w-full max-w-2xl rounded-[2.5rem]" style={{ background: 'rgba(15,0,0,.92)', backdropFilter: 'blur(28px)', border: '1px solid rgba(239,68,68,.5)', boxShadow: '0 0 80px rgba(220,38,38,.4)' }}>
-          <div className="flex justify-between items-center p-6 pb-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(239,68,68,.3)' }}><h2 className="text-2xl font-black flex gap-3 text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]"><History />G-Drive & Riwayat</h2><button className="rounded-full p-2 hover:bg-white/10 ninja-btn-hover" style={{ background: 'rgba(239,68,68,.2)', border: '1px solid rgba(239,68,68,.5)' }} onClick={() => setActiveMenu(null)}><X size={18} /></button></div>
-          <div className="mscroll p-6 space-y-4" style={{ maxHeight: 'calc(92vh - 72px)' }}>
-            {historyData.length === 0 ? <div className="text-center py-20"><Download size={48} className="mx-auto text-red-900 mb-4" /><p className="text-red-500 font-black italic">BELUM ADA RIWAYAT TRANSAKSI</p></div> : historyData.map(trx => (
-              <div key={trx.id} className="p-6 rounded-[2rem] ninja-card-hover" style={{ background: 'rgba(0,0,0,.6)', border: '1px solid rgba(239,68,68,.3)' }}>
-                <div className="flex justify-between text-[10px] text-red-300 mb-4 font-bold uppercase tracking-widest p-2 rounded-lg" style={{ background: 'rgba(239,68,68,.2)', border: '1px solid rgba(239,68,68,.4)' }}><span>ID: {trx.id}</span><span>{trx.date}</span></div>
-                {trx.hwidItems.map((h, i) => {
-                  const liveProduct = allProducts.find(p => p.name === h.productName || p.id === h.id)
-                  const zipUrl = safeLink(liveProduct?.zipLink) || safeLink(h.zipLink) || null
-                  const pdfUrl = safeLink(liveProduct?.pdfLink) || safeLink(h.pdfLink) || null
-                  return (<div key={i} className="mb-4 pt-4" style={{ borderTop: '1px solid rgba(239,68,68,.2)' }}>
-                    <p className="font-black text-sm mb-3 text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">{h.productName}</p>
-                    {zipUrl ? (
-                      <><div className="flex gap-2 mb-3"><input readOnly value={zipUrl} className="flex-1 p-3 text-xs text-red-400 outline-none font-mono rounded-xl" style={{ background: 'rgba(0,0,0,.8)', border: '1px solid rgba(239,68,68,.4)' }} /><button onClick={() => { navigator.clipboard.writeText(zipUrl); alert('Link Disalin!') }} className="bg-red-700 text-white border border-red-500 px-4 rounded-xl text-[10px] font-black flex items-center gap-1 transition-all ninja-btn-hover shadow-[0_0_10px_rgba(239,68,68,0.8)]"><Copy size={12} />COPY</button></div>
-                        <div className="flex gap-3"><a href={zipUrl} target="_blank" rel="noopener noreferrer" className="flex-1 p-3 rounded-xl text-center text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2 text-white ninja-btn-hover" style={{ background: 'linear-gradient(135deg, #991b1b, #ef4444)', border: '1px solid #f87171', boxShadow: '0 0 15px rgba(239,68,68,0.6)' }}><HardDrive size={14} />BUKA G-DRIVE</a>
-                          {pdfUrl ? <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="flex-1 p-3 rounded-xl text-center text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2 text-white ninja-btn-hover" style={{ background: 'linear-gradient(135deg, #7e22ce, #d946ef)', border: '1px solid #f472b6', boxShadow: '0 0 15px rgba(217,70,239,0.6)' }}><FileText size={14} />PDF PANDUAN</a> : <div className="flex-1 p-3 rounded-xl text-center text-[10px] font-black uppercase flex items-center justify-center gap-2 text-gray-500" style={{ background: 'rgba(0,0,0,.8)', border: '1px solid rgba(255,255,255,.1)' }}><FileText size={14} />PDF Belum Ada</div>}</div></>
-                    ) : (
-                      <div className="p-4 rounded-xl text-center" style={{ background: 'rgba(239,68,68,.1)', border: '1px dashed rgba(239,68,68,.5)' }}><p className="text-[11px] text-red-400 font-bold drop-shadow-md">⏳ Link G-Drive belum tersedia</p><p className="text-[9px] text-gray-400 mt-1">Admin akan kirimkan link via WhatsApp setelah verifikasi.</p>{pdfUrl && <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-3 text-[10px] font-black text-purple-400 hover:text-purple-300 transition-colors drop-shadow-[0_0_5px_rgba(168,85,247,0.8)]"><FileText size={12} />Download PDF</a>}</div>
-                    )}
-                  </div>)
-                })}
-              </div>
-            ))}
-            {historyData.length > 0 && <button onClick={() => { if (window.confirm('Hapus semua riwayat?')) { setHistoryData([]); setIsVipMember(false); setVipTierInfo(null); localStorage.removeItem('vinzsky_history') } }} className="w-full mt-4 p-3 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 text-white transition-all ninja-btn-hover" style={{ background: 'rgba(239,68,68,.2)', border: '1px solid rgba(239,68,68,.5)' }}><Trash2 size={12} />Bersihkan Data Perangkat</button>}
-          </div>
-        </div></div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════
-          LIVE CHAT
-      ══════════════════════════════════════════════════════ */}
-      {!isAnyModalOpen && (
-        <div className="fixed bottom-6 right-6 z-[500] flex flex-col items-end">
-          {isChatOpen && (
-            <div className="mb-4 w-80 sm:w-96 rounded-[2rem] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(220,38,38,0.5)]" style={{ background: 'rgba(15,0,0,.98)', backdropFilter: 'blur(32px)', border: '1px solid rgba(239,68,68,.6)' }}>
-              <div className="p-5 flex justify-between items-center" style={{ background: 'linear-gradient(to right,rgba(220,38,38,.4),rgba(0,0,0,0))', borderBottom: '1px solid rgba(239,68,68,.3)' }}>
-                <div><h3 className="font-black text-base text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]">CS VinzSky-shopID</h3><p className="text-[10px] text-green-500 flex items-center gap-1.5 font-bold tracking-widest mt-0.5"><span className="w-2 h-2 rounded-full bg-green-500 animate-pulse inline-block" style={{ boxShadow: '0 0 8px #22c55e' }} />ONLINE 24/7</p></div>
-                <button onClick={() => setIsChatOpen(false)} className="p-2 rounded-full transition-all hover:scale-110 ninja-btn-hover" style={{ background: 'rgba(239,68,68,.2)', border: '1px solid rgba(239,68,68,.5)' }}><X size={20} className="text-white" /></button>
-              </div>
-              <div className="h-72 p-5 flex flex-col gap-3 mscroll shadow-inner" style={{ background: 'rgba(0,0,0,.8)' }}>
-                {chatMessages.map((m, i) => (<div key={i} className={`max-w-[85%] rounded-2xl p-3.5 text-sm shadow-md font-bold ${m.sender === 'user' ? 'bg-red-700 text-white self-end rounded-br-sm border border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'self-start rounded-bl-sm text-gray-200 border border-gray-700'}`} style={m.sender !== 'user' ? { background: 'rgba(20,20,20,.95)' } : {}}>{m.text}</div>))}
-                <div ref={chatEndRef} />
-              </div>
-              <form onSubmit={handleSendChat} className="p-4 flex gap-3" style={{ background: 'rgba(20,0,0,1)', borderTop: '1px solid rgba(239,68,68,.3)' }}>
-                <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Ketik pesan Bosku..." className="flex-1 px-5 py-3.5 outline-none text-sm rounded-2xl font-bold transition-all focus:border-red-500 focus:shadow-[0_0_15px_rgba(239,68,68,.5)]" style={{ background: 'rgba(0,0,0,.8)', border: '1px solid rgba(239,68,68,.4)', color: 'white' }} />
-                <button type="submit" disabled={!chatInput.trim()} className="bg-red-700 border border-red-500 disabled:opacity-50 text-white p-3.5 rounded-2xl transition-all shadow-[0_0_20px_rgba(239,68,68,.8)] ninja-btn-hover"><Send size={20} /></button>
-              </form>
+      {/* STRUK BARU SETELAH CHECKOUT */}
+      {showReceipt && (
+        <div className="m-overlay" style={{ zIndex: 99999 }}>
+          <div className="bg-white text-black p-8 rounded-lg relative shadow-[0_0_40px_rgba(255,255,255,0.2)] w-full max-w-sm font-mono flex flex-col items-center">
+            <div className="absolute -bottom-2 left-0 right-0 h-4 bg-repeat-x" style={{ backgroundImage: 'radial-gradient(circle, transparent 4px, white 4px)', backgroundSize: '16px 16px', backgroundPosition: '-8px 0' }}></div>
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 border-4 border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]"><CheckCircle size={32} className="text-green-600" /></div>
+            <h2 className="text-2xl font-black mb-1 text-center">VINZSKY-SHOPID</h2>
+            <p className="text-[10px] text-gray-500 text-center mb-4 border-b border-dashed border-gray-400 pb-4 w-full uppercase tracking-widest">Order Berhasil Diterima</p>
+            
+            <div className="w-full text-xs space-y-2 mb-4 border-b border-dashed border-gray-400 pb-4">
+              <div className="flex justify-between"><span className="font-bold">Order ID:</span><span>{showReceipt.id}</span></div>
+              <div className="flex justify-between"><span className="font-bold">Tanggal:</span><span>{showReceipt.date}</span></div>
+              <div className="flex justify-between"><span className="font-bold">Nama:</span><span>{showReceipt.customerName}</span></div>
             </div>
-          )}
-          <button onClick={() => setIsChatOpen(!isChatOpen)} className={`w-16 h-16 rounded-full flex items-center justify-center text-white transition-all z-50 ninja-btn-hover ${!isChatOpen ? 'animate-bounce' : ''}`} style={{ background: 'linear-gradient(135deg,#b91c1c,#ef4444)', boxShadow: '0 0 30px rgba(239,68,68,.8),0 0 50px rgba(239,68,68,.4)', border: '2px solid #fca5a5' }}>
-            {isChatOpen ? <X size={28} /> : <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" /></svg>}
-          </button>
+            <div className="w-full flex justify-between items-center text-lg font-black mb-6">
+              <span>TOTAL</span><span className="text-green-600">Rp {Number(showReceipt.total).toLocaleString('id-ID')}</span>
+            </div>
+            <div className="flex gap-3 w-full">
+                <button onClick={async () => {
+                    try {
+                        if (typeof window !== 'undefined') {
+                            const { jsPDF } = await import("jspdf"); 
+                            const doc = new jsPDF();
+                            doc.setFontSize(22); doc.setTextColor(220, 38, 38); doc.text("VINZSKY", 20, 20); 
+                            doc.text(`TOTAL: Rp ${showReceipt.total}`, 20, 50); 
+                            doc.save(`Struk.pdf`);
+                        }
+                    } catch (e) { alert("PDF Error"); }
+                }} className="flex-1 bg-gray-200 text-gray-800 font-black py-3 rounded-lg flex items-center justify-center gap-2"><Download size={14}/> PDF</button>
+                <button onClick={() => {
+                  setShowReceipt(null);
+                  if (showReceipt.hwidItems && showReceipt.hwidItems.some(i => i.isLifetime || i.durationCode === 'LIFETIME')) {
+                    router.push('/tools-lifetime');
+                  } else {
+                    setShowOrderStatus(true);
+                  }
+                }} className="flex-[2] bg-red-600 text-white font-black py-3 rounded-lg text-sm">TUTUP STRUK</button>
+            </div>
+            <p className="text-[9px] text-gray-400 mt-4 text-center">
+              {showReceipt.hwidItems && showReceipt.hwidItems.some(i => i.isLifetime || i.durationCode === 'LIFETIME') 
+                ? <>Cek link Google Drive Anda di menu <b className="text-red-500">Tool-Lifetime</b>.</>
+                : <>Cek lisensi key dan beri ulasan di menu <b className="text-red-500">Status Pesanan</b>.</>}
+            </p>
+          </div>
         </div>
       )}
+
+      {showExitPopup && (
+        <div className="m-overlay" style={{ zIndex: 99998 }}>
+          <div className="m-box max-w-sm p-8 text-center rounded-[3rem] bg-[#0a0a0a] border border-red-500/50 shadow-[0_0_80px_rgba(220,38,38,0.5)]">
+            <button onClick={() => { setShowExitPopup(false); setSelectedProduct(null) }} className="absolute top-4 right-4 text-gray-500 hover:text-white"><X/></button>
+            <Percent size={48} className="mx-auto text-red-500 mb-4 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]" />
+            <h2 className="text-2xl font-black text-white mb-2">TUNGGU BOSKU!</h2>
+            <p className="text-sm text-gray-300 mb-4">Yakin mau pergi? Ambil</p>
+            <p className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-yellow-500 mb-6 animate-pulse">EKSTRA DISKON 10%</p>
+            <button onClick={() => { setHasExitPromo(true); setShowExitPopup(false); playPop() }} className="w-full bg-red-600 text-white font-black py-4 rounded-xl ninja-btn-hover mb-3">
+              KLAIM DISKON SEKARANG
+            </button>
+            <button onClick={() => { setShowExitPopup(false); setSelectedProduct(null) }} className="text-xs text-gray-500 font-bold hover:text-white transition-colors">
+              Nggak usah deh, biarin aja
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Ini file CheckoutManual yang udah full sinkron ke tabel baru */}
+      <CheckoutManual isOpen={showManualCheckout} onClose={() => setShowManualCheckout(false)} cartItems={cart} totalAmount={cart.reduce((s,i)=>s+i.finalPrice,0)} onSuccess={handleManualSuccess} supabase={supabase} />
+      
+      {/* Ini pemanggilan OrderStatus yang fix error PDF-nya */}
+      <OrderStatus isOpen={showOrderStatus} onClose={() => setShowOrderStatus(false)} userEmail={authUser?.email} supabase={supabase} />
     </div>
   )
 }

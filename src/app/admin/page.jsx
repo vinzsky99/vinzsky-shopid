@@ -20,6 +20,16 @@ const fmt     = (n) => n?.toLocaleString('id-ID') || '0'
 const fmtDate = (d) => d ? new Date(d).toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-'
 const fmtDateShort = (d) => d ? new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short'}) : '-'
 
+// FIX: Pake function biar gak kena ReferenceError pas di-render
+function timeAgoAdmin(d) {
+  if (!d) return '-';
+  const seconds = Math.round((new Date() - new Date(d)) / 1000);
+  if (seconds < 60) return 'Baru saja';
+  const m = Math.round(seconds/60); if (m < 60) return `${m}mnt lalu`;
+  const h = Math.round(m/60); if (h < 24) return `${h}jam lalu`;
+  const d_days = Math.round(h/24); return `${d_days}hr lalu`;
+}
+
 const TIERS = {
   '1H':  { name:'Bronze', color:'#cd7f32', glow:'rgba(205,127,50,.7)',  bg:'rgba(205,127,50,.12)',  border:'rgba(205,127,50,.4)' },
   '7D':  { name:'Silver', color:'#60a5fa', glow:'rgba(96,165,250,.7)',  bg:'rgba(96,165,250,.12)',  border:'rgba(96,165,250,.4)' },
@@ -232,6 +242,7 @@ export default function AdminPanel() {
   const [loading,       setLoading]       = useState(true)
   const [activeTab,     setActiveTab]     = useState('dashboard')
   const [orders,        setOrders]        = useState([])
+  const [manualOrders,  setManualOrders]  = useState([])
   const [licenses,      setLicenses]      = useState([])
   const [reviews,       setReviews]       = useState([])
   const [visitors,      setVisitors]      = useState([])
@@ -262,16 +273,18 @@ export default function AdminPanel() {
     if(!supabase) return
     setIsRefreshing(true)
     try{
-      const[{data:ord},{data:lic},{data:rev},{data:vis},{data:prod},{data:pv}]=await Promise.all([
+      const[{data:ord},{data:lic},{data:rev},{data:vis},{data:prod},{data:pv},{data:man}]=await Promise.all([
         supabase.from('orders').select('*').order('created_at',{ascending:false}),
         supabase.from('licenses').select('*').order('created_at',{ascending:false}),
         supabase.from('reviews').select('*').order('created_at',{ascending:false}),
         supabase.from('visitors').select('*').order('last_seen',{ascending:false}).limit(300),
         supabase.from('products').select('*').order('id',{ascending:true}),
         supabase.from('product_views').select('product_id'),
+        supabase.from('manual_orders').select('*').order('created_at',{ascending:false}),
       ])
-      setOrders(ord||[]); setLicenses(lic||[]); setReviews(rev||[]); setVisitors(vis||[]); setProducts(prod||[])
+      setOrders(ord||[]); setLicenses(lic||[]); setReviews(rev||[]); setVisitors(vis||[]); setProducts(prod||[]); setManualOrders(man||[])
       const vc={};(pv||[]).forEach(v=>{vc[v.product_id]=(vc[v.product_id]||0)+1}); setViewCounts(vc)
+      
       const memberMap={}
       ;(lic||[]).forEach(l=>{
         if(!l.master_hwid) return
@@ -281,16 +294,37 @@ export default function AdminPanel() {
         }
       })
       setMembers(Object.values(memberMap))
-      const totalRev=(ord||[]).reduce((s,o)=>s+(o.total_price||0),0)
+      
+      const autoRev = (ord||[]).reduce((s,o)=>s+(o.total_price||0),0)
+      const manualRev = (man||[]).filter(m=>m.status==='VERIFIED').reduce((s,m)=>s+(m.total_price||0),0)
+      const totalRev = autoRev + manualRev
+
       const since5m=new Date(Date.now()-5*60*1000).toISOString()
       const activeV=(vis||[]).filter(v=>v.last_seen>=since5m).length
+      
       const days14=Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()-13+i);return{label:fmtDateShort(d.toISOString()),date:d.toISOString().split('T')[0],value:0}})
       ;(ord||[]).forEach(o=>{const day=o.created_at?.split('T')[0];const found=days14.find(d=>d.date===day);if(found)found.value+=o.total_price||0})
+      ;(man||[]).filter(m=>m.status==='VERIFIED').forEach(m=>{const day=m.created_at?.split('T')[0];const found=days14.find(d=>d.date===day);if(found)found.value+=m.total_price||0})
+      
       const vdays14=Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()-13+i);return{label:fmtDateShort(d.toISOString()),date:d.toISOString().split('T')[0],value:0}})
       ;(vis||[]).forEach(v=>{const day=v.created_at?.split('T')[0]||v.last_seen?.split('T')[0];const found=vdays14.find(d=>d.date===day);if(found)found.value++})
+      
       const tierCounts={'1H':0,'7D':0,'14D':0,'30D':0};(lic||[]).forEach(l=>{if(tierCounts[l.tier]!==undefined)tierCounts[l.tier]++})
-      const convRate=vis?.length>0?((ord||[]).length/vis.length*100):0
-      setStats({totalRevenue:totalRev,totalOrders:(ord||[]).length,activeVisitors:activeV,totalReviews:(rev||[]).length,totalMembers:Object.keys(memberMap).length,revenueByDay:days14,visitorsByDay:vdays14,ordersByTier:tierCounts,convRate:Math.min(convRate,100).toFixed(1),avgOrder:(ord||[]).length>0?(totalRev/(ord||[]).length):0})
+      const totalSemuaOrder = (ord||[]).length + (man||[]).length
+      const convRate=vis?.length>0?(totalSemuaOrder/vis.length*100):0
+      
+      setStats({
+        totalRevenue:totalRev,
+        totalOrders:totalSemuaOrder,
+        activeVisitors:activeV,
+        totalReviews:(rev||[]).length,
+        totalMembers:Object.keys(memberMap).length,
+        revenueByDay:days14,
+        visitorsByDay:vdays14,
+        ordersByTier:tierCounts,
+        convRate:Math.min(convRate,100).toFixed(1),
+        avgOrder:totalSemuaOrder>0?(totalRev/totalSemuaOrder):0
+      })
     }catch(e){console.error(e)}
     setIsRefreshing(false)
   },[supabase])
@@ -304,6 +338,7 @@ export default function AdminPanel() {
       .on('postgres_changes',{event:'*',schema:'public',table:'licenses'},()=>fetchAll())
       .on('postgres_changes',{event:'*',schema:'public',table:'reviews'},()=>fetchAll())
       .on('postgres_changes',{event:'*',schema:'public',table:'visitors'},()=>fetchAll())
+      .on('postgres_changes',{event:'*',schema:'public',table:'manual_orders'},()=>fetchAll())
       .subscribe()
     return()=>supabase.removeChannel(ch)
   },[authUser,supabase,fetchAll])
@@ -311,6 +346,7 @@ export default function AdminPanel() {
   const handleLogin=async()=>{ if(!supabase) return; await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin+'/admin'}}) }
   const handleLogout=async()=>{ if(!supabase) return; await supabase.auth.signOut(); setAuthUser(null) }
   const updateLicense=async(id,status)=>{ if(!supabase) return; await supabase.from('licenses').update({status}).eq('id',id); fetchAll() }
+  const updateManualOrder=async(id,status)=>{ if(!supabase) return; await supabase.from('manual_orders').update({status}).eq('id',id); fetchAll() }
   const deleteOrder=async(id)=>{ if(!supabase||!window.confirm('Hapus order ini?')) return; await supabase.from('orders').delete().eq('id',id); fetchAll() }
   const deleteReview=async(id)=>{ if(!supabase||!window.confirm('Hapus review ini?')) return; await supabase.from('reviews').delete().eq('id',id); fetchAll() }
   const exportCSV=()=>{
@@ -320,6 +356,7 @@ export default function AdminPanel() {
 
   const filteredOrders=orders.filter(o=>{const q=searchQ.toLowerCase();return(o.customer_name||'').toLowerCase().includes(q)||(o.customer_email||'').toLowerCase().includes(q)||(o.customer_wa||'').toLowerCase().includes(q)})
   const filteredMembers=members.filter(m=>{const q=searchQ.toLowerCase();return(m.name||'').toLowerCase().includes(q)||(m.email||'').toLowerCase().includes(q)})
+  const filteredManual=manualOrders.filter(m=>{const q=searchQ.toLowerCase();return(m.customer_name||'').toLowerCase().includes(q)||(m.customer_wa||'').toLowerCase().includes(q)})
 
   /* GLASS STYLE HELPERS */
   const S = {
@@ -373,8 +410,9 @@ export default function AdminPanel() {
 
   const tabs=[
     {id:'dashboard',label:'🏠 Dashboard'},
+    {id:'manual',   label:`💸 TF Manual (${manualOrders.length})`},
+    {id:'orders',   label:`📋 Auto Orders (${orders.length})`},
     {id:'members',  label:`💎 Members (${members.length})`},
-    {id:'orders',   label:`📋 Orders (${orders.length})`},
     {id:'licenses', label:`🔑 Lisensi (${licenses.length})`},
     {id:'reviews',  label:`⭐ Reviews (${reviews.length})`},
     {id:'visitors', label:'👁 Visitors'},
@@ -454,7 +492,7 @@ export default function AdminPanel() {
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}}>
               <div style={{...S.glassCard('rgba(34,197,94,.2)'),padding:20}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-                  <div><p style={{fontWeight:900,fontSize:13,margin:'0 0 2px',textShadow:'0 0 8px rgba(74,222,128,.4)'}}>💰 Revenue Harian</p><p style={{fontSize:10,color:'rgba(255,255,255,.3)',margin:0}}>14 hari terakhir</p></div>
+                  <div><p style={{fontWeight:900,fontSize:13,margin:'0 0 2px',textShadow:'0 0 8px rgba(74,222,128,.4)'}}>💰 Revenue Harian</p><p style={{fontSize:10,color:'rgba(255,255,255,.3)',margin:0}}>14 hari terakhir (Auto + Manual)</p></div>
                   <div style={{...glass('rgba(34,197,94,.3)'),padding:'4px 10px',borderRadius:8}}><span style={{fontSize:11,fontWeight:900,color:'#4ade80'}}>Rp {fmt(stats.totalRevenue)}</span></div>
                 </div>
                 <MiniBarChart data={stats.revenueByDay} color="#4ade80" height={90}/>
@@ -515,7 +553,10 @@ export default function AdminPanel() {
                           <td style={S.td}><span style={{fontSize:11,color:'#93c5fd'}}>{o.items?.[0]?.name||'-'}</span></td>
                           <td style={S.td}><div style={{display:'flex',alignItems:'center',gap:4,...glass(tier.border),padding:'3px 7px',borderRadius:8,width:'fit-content'}}><Diamond color={tier.color} glow={tier.glow} size={10}/><span style={{fontSize:9,color:tier.color,fontWeight:900}}>{tier.name}</span></div></td>
                           <td style={S.td}><span style={{fontWeight:900,color:'#4ade80',fontSize:12,textShadow:'0 0 8px rgba(74,222,128,.4)'}}>Rp {fmt(o.total_price)}</span></td>
-                          <td style={S.td}><span style={{fontSize:9,color:'rgba(255,255,255,.35)'}}>{fmtDate(o.created_at)}</span></td>
+                          <td style={S.td}>
+                            <p style={{fontSize:10,color:'rgba(255,255,255,.6)',margin:0}}>{fmtDate(o.created_at)}</p>
+                            <p style={{fontSize:9,color:'#4ade80',margin:'2px 0 0',fontWeight:700}}>{timeAgoAdmin(o.created_at)}</p>
+                          </td>
                         </tr>
                       )
                     })}
@@ -561,48 +602,47 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* ══════════ MEMBERS ══════════ */}
-        {activeTab==='members'&&(
+        {/* ══════════ MANUAL TF DANA ══════════ */}
+        {activeTab==='manual'&&(
           <div>
             <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'}}>
               <div style={{flex:1,minWidth:200,display:'flex',alignItems:'center',gap:8,...glass('rgba(255,255,255,.1)'),borderRadius:12,padding:'8px 14px'}}>
                 <span style={{color:'rgba(255,255,255,.4)',fontSize:14}}>🔍</span>
-                <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="Cari nama, email..." style={{background:'transparent',border:'none',outline:'none',color:'white',fontSize:12,width:'100%'}}/>
-              </div>
-              <div style={{display:'flex',gap:8}}>
-                {Object.entries(TIERS).map(([k,t])=>(
-                  <div key={k} style={{display:'flex',alignItems:'center',gap:4,padding:'6px 10px',borderRadius:10,...glass(t.border)}}>
-                    <Diamond color={t.color} glow={t.glow} size={12}/>
-                    <span style={{fontSize:10,fontWeight:900,color:t.color}}>{stats.ordersByTier[k]||0}</span>
-                  </div>
-                ))}
+                <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="Cari nama, WA pembeli..." style={{background:'transparent',border:'none',outline:'none',color:'white',fontSize:12,width:'100%'}}/>
               </div>
             </div>
             <div style={{...glass('rgba(255,255,255,.08)'),borderRadius:16,overflow:'auto'}}>
               <table style={{width:'100%',borderCollapse:'collapse',minWidth:700}}>
-                <thead><tr>{['Member','Email / WA','Tier','Status','Total Spend','Bergabung'].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                <thead><tr>{['Pembeli','Kontak','Produk & Durasi','Metode','Total','Status','Tanggal','Aksi'].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
                 <tbody>
-                  {filteredMembers.map((m,i)=>{
-                    const tier=getTier(m.tier)
-                    return(
-                      <tr key={i} className="admin-hover" style={{background:i%2===0?'transparent':'rgba(255,255,255,.015)',transition:'background .2s'}}>
-                        <td style={S.td}><p style={{fontWeight:700,margin:0,fontSize:12}}>{m.name}</p><p style={{fontSize:9,color:'rgba(255,255,255,.25)',margin:0,fontFamily:'monospace'}}>{m.hwid?.substring(0,12)}...</p></td>
-                        <td style={S.td}><p style={{fontSize:10,color:'rgba(255,255,255,.5)',margin:0}}>{m.email}</p><p style={{fontSize:10,color:'rgba(255,255,255,.35)',margin:0}}>{m.wa}</p></td>
-                        <td style={S.td}><div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 8px',borderRadius:8,width:'fit-content',...glass(tier.border)}}><Diamond color={tier.color} glow={tier.glow} size={12}/><span style={{fontSize:10,fontWeight:900,color:tier.color}}>{tier.name}</span></div></td>
-                        <td style={S.td}><span style={S.badge(m.status==='ACTIVE'?'#4ade80':'#fcd34d',m.status==='ACTIVE'?'rgba(34,197,94,.15)':'rgba(234,179,8,.15)',m.status==='ACTIVE'?'rgba(34,197,94,.35)':'rgba(234,179,8,.35)')}>{m.status||'PENDING'}</span></td>
-                        <td style={S.td}><span style={{fontWeight:900,color:'#4ade80',fontSize:12,textShadow:'0 0 8px rgba(74,222,128,.4)'}}>Rp {fmt(m.totalSpend)}</span></td>
-                        <td style={S.td}><span style={{fontSize:10,color:'rgba(255,255,255,.35)'}}>{fmtDate(m.createdAt)}</span></td>
-                      </tr>
-                    )
-                  })}
-                  {filteredMembers.length===0&&<tr><td colSpan={6} style={{...S.td,textAlign:'center',color:'rgba(255,255,255,.2)',padding:40}}>Belum ada member</td></tr>}
+                  {filteredManual.map((m,i)=>(
+                    <tr key={i} className="admin-hover" style={{background:i%2===0?'transparent':'rgba(255,255,255,.015)',transition:'background .2s'}}>
+                      <td style={S.td}><p style={{fontWeight:700,margin:0,fontSize:12}}>{m.customer_name}</p></td>
+                      <td style={S.td}><p style={{fontSize:10,color:'rgba(255,255,255,.5)',margin:0}}>{m.customer_wa}</p><p style={{fontSize:10,color:'rgba(255,255,255,.35)',margin:0}}>{m.customer_email||'-'}</p></td>
+                      <td style={S.td}><p style={{fontSize:11,color:'#93c5fd',margin:0}}>{m.product_name}</p><span style={{fontSize:9,color:'rgba(255,255,255,.4)'}}>{m.duration_label}</span></td>
+                      <td style={S.td}><span style={{textTransform:'uppercase',fontSize:9,fontWeight:900,color:'#fcd34d'}}>{m.payment_method}</span></td>
+                      <td style={S.td}><span style={{fontWeight:900,color:'#4ade80',fontSize:12,textShadow:'0 0 8px rgba(74,222,128,.4)'}}>Rp {fmt(m.total_price)}</span></td>
+                      <td style={S.td}><span style={S.badge(m.status==='VERIFIED'?'#4ade80':m.status==='REJECTED'?'#f87171':'#fcd34d', m.status==='VERIFIED'?'rgba(34,197,94,.15)':m.status==='REJECTED'?'rgba(239,68,68,.15)':'rgba(252,211,77,.15)', m.status==='VERIFIED'?'rgba(34,197,94,.35)':m.status==='REJECTED'?'rgba(239,68,68,.35)':'rgba(252,211,77,.35)')}>{m.status}</span></td>
+                      <td style={S.td}>
+                        <p style={{fontSize:10,color:'rgba(255,255,255,.6)',margin:0}}>{fmtDate(m.created_at)}</p>
+                        <p style={{fontSize:9,color:'#4ade80',margin:'2px 0 0',fontWeight:700}}>{timeAgoAdmin(m.created_at)}</p>
+                      </td>
+                      <td style={S.td}>
+                        <div style={{display:'flex',gap:4}}>
+                          <button onClick={()=>updateManualOrder(m.id,'VERIFIED')} className="admin-hover" style={{padding:'4px 8px',borderRadius:6,fontSize:9,fontWeight:900,cursor:'pointer',...glass('rgba(34,197,94,.25)'),color:'#4ade80',border:'1px solid rgba(34,197,94,.3)'}}>✓ ACC</button>
+                          <button onClick={()=>updateManualOrder(m.id,'REJECTED')} className="admin-hover" style={{padding:'4px 8px',borderRadius:6,fontSize:9,fontWeight:900,cursor:'pointer',...glass('rgba(239,68,68,.25)'),color:'#f87171',border:'1px solid rgba(239,68,68,.3)'}}>✕ TOLAK</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredManual.length===0&&<tr><td colSpan={8} style={{...S.td,textAlign:'center',color:'rgba(255,255,255,.2)',padding:40}}>Belum ada Manual Order</td></tr>}
                 </tbody>
               </table>
             </div>
           </div>
         )}
 
-        {/* ══════════ ORDERS ══════════ */}
+        {/* ══════════ ORDERS AUTO ══════════ */}
         {activeTab==='orders'&&(
           <div>
             <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'}}>
@@ -648,12 +688,59 @@ export default function AdminPanel() {
                           )
                         })()}</td>
                         <td style={S.td}><span style={{fontWeight:900,color:'#4ade80',fontSize:12,textShadow:'0 0 8px rgba(74,222,128,.4)'}}>Rp {fmt(o.total_price)}</span></td>
-                        <td style={S.td}><span style={{fontSize:9,color:'rgba(255,255,255,.35)'}}>{fmtDate(o.created_at)}</span></td>
+                        <td style={S.td}>
+                          <p style={{fontSize:10,color:'rgba(255,255,255,.6)',margin:0}}>{fmtDate(o.created_at)}</p>
+                          <p style={{fontSize:9,color:'#4ade80',margin:'2px 0 0',fontWeight:700}}>{timeAgoAdmin(o.created_at)}</p>
+                        </td>
                         <td style={S.td}><button onClick={()=>deleteOrder(o.id)} className="admin-hover" style={{padding:'5px 8px',borderRadius:8,...glass('rgba(239,68,68,.25)'),color:'#f87171',cursor:'pointer',fontSize:10,border:'1px solid rgba(239,68,68,.3)',transition:'all .3s'}}>🗑</button></td>
                       </tr>
                     )
                   })}
-                  {filteredOrders.length===0&&<tr><td colSpan={8} style={{...S.td,textAlign:'center',color:'rgba(255,255,255,.2)',padding:40}}>Belum ada order</td></tr>}
+                  {filteredOrders.length===0&&<tr><td colSpan={8} style={{...S.td,textAlign:'center',color:'rgba(255,255,255,.2)',padding:40}}>Belum ada order auto</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════ MEMBERS ══════════ */}
+        {activeTab==='members'&&(
+          <div>
+            <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'}}>
+              <div style={{flex:1,minWidth:200,display:'flex',alignItems:'center',gap:8,...glass('rgba(255,255,255,.1)'),borderRadius:12,padding:'8px 14px'}}>
+                <span style={{color:'rgba(255,255,255,.4)',fontSize:14}}>🔍</span>
+                <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="Cari nama, email..." style={{background:'transparent',border:'none',outline:'none',color:'white',fontSize:12,width:'100%'}}/>
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                {Object.entries(TIERS).map(([k,t])=>(
+                  <div key={k} style={{display:'flex',alignItems:'center',gap:4,padding:'6px 10px',borderRadius:10,...glass(t.border)}}>
+                    <Diamond color={t.color} glow={t.glow} size={12}/>
+                    <span style={{fontSize:10,fontWeight:900,color:t.color}}>{stats.ordersByTier[k]||0}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{...glass('rgba(255,255,255,.08)'),borderRadius:16,overflow:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'collapse',minWidth:700}}>
+                <thead><tr>{['Member','Email / WA','Tier','Status','Total Spend','Bergabung'].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {filteredMembers.map((m,i)=>{
+                    const tier=getTier(m.tier)
+                    return(
+                      <tr key={i} className="admin-hover" style={{background:i%2===0?'transparent':'rgba(255,255,255,.015)',transition:'background .2s'}}>
+                        <td style={S.td}><p style={{fontWeight:700,margin:0,fontSize:12}}>{m.name}</p><p style={{fontSize:9,color:'rgba(255,255,255,.25)',margin:0,fontFamily:'monospace'}}>{m.hwid?.substring(0,12)}...</p></td>
+                        <td style={S.td}><p style={{fontSize:10,color:'rgba(255,255,255,.5)',margin:0}}>{m.email}</p><p style={{fontSize:10,color:'rgba(255,255,255,.35)',margin:0}}>{m.wa}</p></td>
+                        <td style={S.td}><div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 8px',borderRadius:8,width:'fit-content',...glass(tier.border)}}><Diamond color={tier.color} glow={tier.glow} size={12}/><span style={{fontSize:10,fontWeight:900,color:tier.color}}>{tier.name}</span></div></td>
+                        <td style={S.td}><span style={S.badge(m.status==='ACTIVE'?'#4ade80':'#fcd34d',m.status==='ACTIVE'?'rgba(34,197,94,.15)':'rgba(234,179,8,.15)',m.status==='ACTIVE'?'rgba(34,197,94,.35)':'rgba(234,179,8,.35)')}>{m.status||'PENDING'}</span></td>
+                        <td style={S.td}><span style={{fontWeight:900,color:'#4ade80',fontSize:12,textShadow:'0 0 8px rgba(74,222,128,.4)'}}>Rp {fmt(m.totalSpend)}</span></td>
+                        <td style={S.td}>
+                          <p style={{fontSize:10,color:'rgba(255,255,255,.6)',margin:0}}>{fmtDate(m.createdAt)}</p>
+                          <p style={{fontSize:9,color:'#4ade80',margin:'2px 0 0',fontWeight:700}}>{timeAgoAdmin(m.createdAt)}</p>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {filteredMembers.length===0&&<tr><td colSpan={6} style={{...S.td,textAlign:'center',color:'rgba(255,255,255,.2)',padding:40}}>Belum ada member</td></tr>}
                 </tbody>
               </table>
             </div>
