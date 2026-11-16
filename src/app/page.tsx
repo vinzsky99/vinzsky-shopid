@@ -15,6 +15,7 @@ import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 
 import CheckoutManual from '../components/Checkoutmanual'
+import Navbar from '../components/layout/Navbar'
 import dynamic from 'next/dynamic'
 const OrderStatus = dynamic(() => import('../components/OrderStatus'), { 
   ssr: false,
@@ -56,9 +57,6 @@ const DiamondIcon = ({ color = '#60a5fa', glow = 'rgba(96,165,250,.7)', size = 2
     <polygon points="4,10 12,10 12,22" fill={color} opacity="0.8" />
   </svg>
 )
-
-const playPop = () => { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(400, ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.1); gain.gain.setValueAtTime(1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.1) } catch (e) { } }
-const playKaChing = () => { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const beep = (f, t, d) => { const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type = 'square'; o.frequency.setValueAtTime(f, ctx.currentTime + t); g.gain.setValueAtTime(0.3, ctx.currentTime + t); g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + t + d); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + d) }; beep(1200, 0, 0.1); beep(1600, 0.15, 0.3) } catch (e) { } }
 
 const generateFingerprint = () => {
   if (typeof window === 'undefined') return 'unknown_device'
@@ -103,10 +101,6 @@ const GS = () => (
     @keyframes slowGalaxy { 0% { transform: scale(1.05) rotate(0deg); } 50% { transform: scale(1.12) rotate(0.5deg); } 100% { transform: scale(1.05) rotate(0deg); } }
     .animate-slowGalaxy { animation: slowGalaxy 30s infinite ease-in-out; }
     
-    .mouse-follower { position: fixed; top: 0; left: 0; width: 12px; height: 12px; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); z-index: 999999; animation: rainbowGlowBg 2s linear infinite; mix-blend-mode: screen; transition: opacity 0.3s ease; }
-    .mouse-follower::after { content: ''; position: absolute; inset: -40px; border-radius: 50%; background: inherit; filter: blur(30px); opacity: 0.8; }
-    @keyframes rainbowGlowBg { 0%{background-color:#ef4444;box-shadow:0 0 20px #ef4444} 14%{background-color:#f97316;box-shadow:0 0 20px #f97316} 28%{background-color:#eab308;box-shadow:0 0 20px #eab308} 42%{background-color:#22c55e;box-shadow:0 0 20px #22c55e} 57%{background-color:#06b6d4;box-shadow:0 0 20px #06b6d4} 71%{background-color:#6366f1;box-shadow:0 0 20px #6366f1} 85%{background-color:#a855f7;box-shadow:0 0 20px #a855f7} 100%{background-color:#ef4444;box-shadow:0 0 20px #ef4444} }
-
     @keyframes rainbowGlow {
       0%   { box-shadow: 0 0 20px rgba(239,68,68,0.9), 0 0 45px rgba(239,68,68,0.5), inset 0 0 15px rgba(239,68,68,0.3); border-color: rgba(239,68,68,0.9); }
       14%  { box-shadow: 0 0 20px rgba(249,115,22,0.9), 0 0 45px rgba(249,115,22,0.5), inset 0 0 15px rgba(249,115,22,0.3); border-color: rgba(249,115,22,0.9); }
@@ -192,8 +186,6 @@ const GS = () => (
     .neb4 { width:400px;height:400px;background:radial-gradient(ellipse,rgba(0,100,80,.09) 0%,transparent 70%);top:10%;right:15%;animation:slowGalaxy 45s ease-in-out 3s infinite; }
 
     video { transform: translate3d(0,0,0); backface-visibility: hidden; perspective: 1000px; -webkit-font-smoothing: subpixel-antialiased; display: block; will-change: transform, opacity; }
-    .receipt-paper { background: #fff; color: #000; font-family: monospace; padding: 30px; border-radius: 8px; position: relative; box-shadow: 0 0 40px rgba(255,255,255,0.2); }
-    .receipt-paper::after { content: ''; position: absolute; bottom: -10px; left: 0; right: 0; height: 10px; background-image: radial-gradient(circle, transparent 5px, #fff 5px); background-size: 20px 20px; background-position: -10px 0; }
   `}</style>
 )
 
@@ -216,64 +208,16 @@ const GalaxyCanvas = () => {
       color: ['#ffffff', '#ffe8c0', '#c0d8ff', '#ffd0ff', '#c0ffee', '#ffcccc'][Math.floor(Math.random() * 6)]
     }))
 
-    const milkyWay = Array.from({ length: 700 }, () => {
-      const t = Math.random()
-      const bx = W * t
-      const by = H * 0.45 + Math.sin(t * Math.PI * 3) * H * 0.15 + (Math.random() - 0.5) * H * 0.2
-      return {
-        x: bx + (Math.random() - 0.5) * 120,
-        y: by + (Math.random() - 0.5) * 60,
-        r: Math.random() * 1.4 + 0.15,
-        opacity: Math.random() * 0.7 + 0.2,
-        color: ['#ffe8c0', '#ffd0e0', '#d0e8ff', '#ffffff', '#ffe0ff'][Math.floor(Math.random() * 5)]
-      }
-    })
-
-    const nebulas = [
-      { x: W * 0.25, y: H * 0.35, rx: 250, ry: 120, color: 'rgba(120,0,60,0.09)', angle: -0.3 },
-      { x: W * 0.72, y: H * 0.55, rx: 280, ry: 140, color: 'rgba(0,30,120,0.08)', angle: 0.2 },
-      { x: W * 0.5, y: H * 0.25, rx: 180, ry: 100, color: 'rgba(80,0,100,0.07)', angle: 0.1 },
-      { x: W * 0.15, y: H * 0.7, rx: 200, ry: 90, color: 'rgba(0,80,80,0.06)', angle: -0.1 },
-    ]
-
     let frame = 0; let raf
     const draw = () => {
       ctx.clearRect(0, 0, W, H)
-      nebulas.forEach(n => {
-        ctx.save()
-        ctx.translate(n.x, n.y); ctx.rotate(n.angle)
-        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(n.rx, n.ry))
-        g.addColorStop(0, n.color); g.addColorStop(1, 'transparent')
-        ctx.fillStyle = g; ctx.scale(n.rx / Math.max(n.rx, n.ry), n.ry / Math.max(n.rx, n.ry))
-        ctx.beginPath(); ctx.arc(0, 0, Math.max(n.rx, n.ry), 0, Math.PI * 2); ctx.fill()
-        ctx.restore()
-      })
-      milkyWay.forEach(s => {
-        ctx.globalAlpha = s.opacity * (0.5 + 0.5 * Math.sin(frame * 0.004 + s.x * 0.01))
+      stars.forEach(s => {
+        const tw = 0.4 + 0.6 * Math.sin(frame * s.speed * 60 + s.phase)
+        ctx.globalAlpha = 0.4 + tw * 0.6
         ctx.fillStyle = s.color
         ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill()
       })
       ctx.globalAlpha = 1
-      stars.forEach(s => {
-        const tw = 0.4 + 0.6 * Math.sin(frame * s.speed * 60 + s.phase)
-        ctx.globalAlpha = 0.4 + tw * 0.6
-        const grd = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 3)
-        grd.addColorStop(0, s.color); grd.addColorStop(1, 'transparent')
-        ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 3, 0, Math.PI * 2); ctx.fill()
-        ctx.globalAlpha = Math.min(tw * 1.1, 1)
-        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 0.5, 0, Math.PI * 2); ctx.fill()
-      })
-      ctx.globalAlpha = 1
-      if (frame % 120 === 0) {
-        const bx = Math.random() * W, by = Math.random() * H
-        const bg = ctx.createRadialGradient(bx, by, 0, bx, by, 30)
-        bg.addColorStop(0, 'rgba(255,255,255,0.9)'); bg.addColorStop(0.3, 'rgba(200,220,255,0.3)'); bg.addColorStop(1, 'transparent')
-        ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(bx, by, 30, 0, Math.PI * 2); ctx.fill()
-        ctx.globalAlpha = 0.6; ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 0.5
-        ctx.beginPath(); ctx.moveTo(bx - 40, by); ctx.lineTo(bx + 40, by); ctx.stroke()
-        ctx.beginPath(); ctx.moveTo(bx, by - 40); ctx.lineTo(bx, by + 40); ctx.stroke()
-        ctx.globalAlpha = 1
-      }
       frame++
       raf = requestAnimationFrame(draw)
     }
@@ -565,7 +509,6 @@ export default function Home() {
   useEffect(() => { if (showNotif) { const t = setTimeout(() => setShowNotif(false), 5500); return () => clearTimeout(t) } }, [showNotif, notifications])
 
   const fmt = s => `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
-  const safeLink = (url) => url && url !== '#' && url !== '' ? url : null
 
   const calcPrice = (basePrice, product = null) => {
     if (!basePrice) return 0
@@ -601,7 +544,7 @@ export default function Home() {
     }
     const fp = calcPrice(product.price, product) * duration.multiplier
     const item = { ...product, finalPrice: fp, durationLabel: duration.label, durationCode: duration.code, ...duration, cartId: Date.now() }
-    playPop(); setCart(c => [...c, item]); setSelectedProduct(null)
+    setCart(c => [...c, item]); setSelectedProduct(null)
     if (type === 'cart') addNotif(`${product.name} masuk keranjang!`)
     else setShowCheckout(true)
   }
@@ -644,7 +587,6 @@ export default function Home() {
     else durationDays = 36500;
 
     if (isLifetimeOrder) {
-      // TABEL BARU KHUSUS TOOLS LIFETIME (G-Drive Link)
       await supabase.from('lifetime_orders').insert([{
         order_id: trxId,
         email: customerEmail || authUser?.email || null,
@@ -654,7 +596,6 @@ export default function Home() {
         drive_link: cart[0].zipLink || cart[0].pdfLink || 'Link Google Drive Belum Tersedia'
       }])
     } else {
-      // TABEL LAMA LISENSI HWID (Video/Photo Upscale)
       const hwid = 'MENUNGGU-HWID'; 
       await supabase.from('user_licenses').insert([{
         user_name: customerName || authUser?.user_metadata?.full_name || 'Guest',
@@ -683,7 +624,7 @@ export default function Home() {
 
     setIsVipMember(true);
     setCart([]); setShowCheckout(false); setCustomerName(''); setCustomerWA(''); setCustomerEmail('')
-    setShowReceipt(trx); playKaChing()
+    setShowReceipt(trx)
   }
 
   const handleManualSuccess = (data) => {
@@ -692,7 +633,6 @@ export default function Home() {
     localStorage.setItem('vinzsky_history', JSON.stringify(upd));
     setShowManualCheckout(false); 
     setCart([]); 
-    playKaChing()
     setShowReceipt(data)
   }
 
@@ -711,16 +651,34 @@ export default function Home() {
       <div className="sstar" /><div className="sstar" /><div className="sstar" />
       <div className="sstar" /><div className="sstar" /><div className="sstar" />
       <div className="neb neb1" /><div className="neb neb2" /><div className="neb neb3" /><div className="neb neb4" />
-      <video autoPlay loop muted playsInline className="fixed inset-0 h-full w-full object-cover z-0 opacity-15 scale-105 animate-slowGalaxy pointer-events-none">
-        <source src="/galaxy_bg.mp4" type="video/mp4" />
-      </video>
       <div className="fixed inset-0 z-0 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(0,0,20,0.5) 0%, rgba(5,0,20,0.2) 40%, rgba(5,0,20,0.2) 60%, rgba(0,0,20,0.5) 100%)' }}></div>
+
+      <Navbar
+        authUser={authUser}
+        userActiveTier={userActiveTier}
+        isAdminUser={isAdminUser}
+        visitorCount={visitorCount}
+        cartCount={cart.length}
+        unreadCount={unreadCount}
+        showNotif={showNotif}
+        setShowNotif={setShowNotif}
+        setUnreadCount={setUnreadCount}
+        setShowAuthModal={setShowAuthModal}
+        setShowCheckout={setShowCheckout}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+        setSearchQuery={setSearchQuery}
+        setShowOrderStatus={setShowOrderStatus}
+        handleLogout={handleLogout}
+        router={router}
+        timeLeft={timeLeft}
+        fmt={fmt}
+      />
 
       {!isAnyModalOpen && activeFomo && (
         <div className={`fixed z-[95] w-[320px] md:w-[360px] ${fomoLeaving ? 'fomo-slide-out' : 'fomo-slide-in'}`} style={{ top: '85px', left: '16px' }}>
           <div className="relative rounded-2xl p-4 overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(20,0,0,0.95), rgba(0,0,0,0.98))', backdropFilter: 'blur(24px)', border: '1px solid rgba(239,68,68,0.5)', boxShadow: '0 0 30px rgba(220,38,38,0.4), inset 0 0 20px rgba(220,38,38,0.2)' }}>
             <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, transparent, #ef4444, #b91c1c, transparent)' }} />
-
             <div className="flex items-center gap-4 relative z-10">
               {renderAvatar(activeFomo.name, activeFomo.avatar)}
               <div className="flex-1 min-w-0">
@@ -728,7 +686,6 @@ export default function Home() {
                   <span className="text-[10px] font-black text-red-400 uppercase tracking-widest drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]">{activeFomo.title}</span>
                   {activeFomo.type === 'purchase' && <ShoppingCart size={12} className="text-red-400" />}
                   {activeFomo.type === 'review' && <Star size={12} className="text-yellow-400 fill-yellow-400" />}
-                  {activeFomo.type === 'activation' && <Zap size={12} className="text-blue-400 fill-blue-400" />}
                 </div>
                 <p className="text-sm font-black text-white truncate drop-shadow-md">{activeFomo.name}</p>
                 <p className="text-[11px] text-gray-300 font-bold truncate mt-0.5">{activeFomo.desc}</p>
@@ -738,7 +695,6 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <div className="absolute -right-10 -bottom-10 w-32 h-32 rounded-full bg-red-600/10 blur-xl animate-pulse pointer-events-none" />
           </div>
         </div>
       )}
@@ -756,40 +712,19 @@ export default function Home() {
         <div className="m-overlay" style={{ zIndex: 99997 }} onClick={() => setShowAuthModal(false)}>
           <div className="auth-modal-in relative w-full max-w-sm rounded-[2rem] overflow-hidden" onClick={e => e.stopPropagation()}
             style={{ background: 'linear-gradient(135deg,rgba(20,0,0,.95),rgba(0,0,0,.98))', backdropFilter: 'blur(48px) saturate(200%)', border: '1px solid rgba(239,68,68,.4)', boxShadow: '0 0 80px rgba(220,38,38,.3), inset 0 0 30px rgba(220,38,38,.1)' }}>
-            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(239,68,68,.9),rgba(185,28,28,.7),transparent)' }} />
             <button onClick={() => setShowAuthModal(false)} className="absolute top-4 right-4 z-50 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:bg-white/15 hover:scale-110 ninja-btn-hover" style={{ background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)' }}><X size={15} /></button>
             <div className="p-8 text-center">
               {authUser ? (
                 <div>
                   <div className="relative mx-auto mb-5 w-24 h-24">
-                    <div className="absolute inset-0 rounded-full avatar-glow" style={{ borderRadius: '50%', boxShadow: '0 0 30px rgba(239,68,68,0.5)' }} />
                     {authUser.user_metadata?.avatar_url
                       ? <img src={authUser.user_metadata.avatar_url} alt="avatar" className="relative w-24 h-24 rounded-full object-cover" style={{ border: '2.5px solid rgba(239,68,68,.8)', boxShadow: '0 0 20px rgba(239,68,68,.6)' }} />
                       : <div className="relative w-24 h-24 rounded-full flex items-center justify-center text-4xl font-black mx-auto" style={{ background: 'linear-gradient(135deg,#b91c1c,#000000)', border: '2.5px solid rgba(239,68,68,.8)', boxShadow: '0 0 20px rgba(239,68,68,.6)' }}>{(authUser.user_metadata?.full_name || authUser.email || 'U')[0].toUpperCase()}</div>
                     }
-                    <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center" style={{ border: '2px solid rgba(0,0,0,1)', boxShadow: '0 0 10px #22c55e' }}><div className="w-2 h-2 rounded-full bg-green-300 animate-pulse" /></div>
                   </div>
                   <h2 className="text-xl font-black text-white mb-0.5">{authUser.user_metadata?.full_name || 'Member VinzSky-shopID'}</h2>
                   <p className="text-xs text-gray-400 mb-2">{authUser.email}</p>
                   
-                  <div className="flex flex-col items-center gap-3 mb-6">
-                    {isAdminUser(authUser) ? (
-                      <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.4)', boxShadow: '0 0 12px rgba(239,68,68,.3)' }}>
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                        <span className="text-[11px] font-black text-red-400 uppercase tracking-widest">⚡ ADMIN PORTAL</span>
-                      </div>
-                    ) : userActiveTier ? (
-                      <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full shadow-lg" style={{ background: userActiveTier.bg, border: `1px solid ${userActiveTier.color}` }}>
-                        <DiamondIcon color={userActiveTier.color} glow={userActiveTier.glow} size={14} animate={true} />
-                        <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: userActiveTier.color }}>VIP {userActiveTier.tierName}</span>
-                      </div>
-                    ) : (
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)' }}>
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">FREE MEMBER</span>
-                      </div>
-                    )}
-                  </div>
-
                   <div className="space-y-2 mb-6">
                     {(isAdminUser(authUser) ? [
                       { icon: <ShieldCheck size={20} />, label: 'Admin Portal', sub: 'Dashboard & kelola toko', action: () => { window.open('/admin', '_blank'); setShowAuthModal(false) } },
@@ -814,42 +749,13 @@ export default function Home() {
                 </div>
               ) : (
                 <div>
-                  <div className="relative mx-auto mb-5 w-28 h-28">
-                    <div className="absolute inset-0 rounded-2xl" style={{ background: 'linear-gradient(135deg,rgba(220,38,38,.5),rgba(0,0,0,.4))', filter: 'blur(18px)', animation: 'visitorPulse 2s ease infinite' }} />
-                    <div className="relative w-28 h-28 rounded-2xl flex flex-col items-center justify-center mx-auto overflow-hidden" style={{ background: 'linear-gradient(135deg,#270000,#000000)', border: '1px solid rgba(239,68,68,.5)', boxShadow: '0 0 30px rgba(220,38,38,.4), inset 0 1px 0 rgba(255,255,255,.15)' }}>
-                      <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg,rgba(220,38,38,.2),rgba(0,0,0,.2))' }} />
-                      <div className="relative z-10 flex flex-col items-center">
-                        <span className="font-black text-white leading-none" style={{ fontSize: 26, letterSpacing: -1, textShadow: '0 0 20px rgba(239,68,68,.8)' }}>VinzSky</span>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <div className="h-px flex-1 w-8" style={{ background: 'linear-gradient(90deg,transparent,rgba(239,68,68,.6))' }} />
-                          <span className="text-[9px] font-black tracking-widest uppercase" style={{ color: '#fca5a5' }}>shop</span>
-                          <span className="text-[9px] font-black tracking-widest" style={{ color: '#ef4444' }}>ID</span>
-                          <div className="h-px flex-1 w-8" style={{ background: 'linear-gradient(90deg,rgba(239,68,68,.6),transparent)' }} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                   <h2 className="text-2xl font-black text-white mb-1 tracking-tight">Selamat Datang!</h2>
                   <p className="text-xs text-red-400 mb-1 font-black uppercase tracking-widest drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]">VinzSky-shopID</p>
                   <p className="text-[11px] text-gray-500 mb-4 leading-relaxed">Login untuk akses riwayat pembelian,<br />lisensi, dan G-Drive Anda</p>
-                  <button onClick={handleGoogleLogin} disabled={authLoading} className="w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all mb-3 disabled:opacity-60 ninja-btn-hover" style={{ background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.2)', boxShadow: '0 4px 20px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.1)' }}>
-                    {authLoading ? <Clock className="animate-spin" size={18} /> : (
-                      <svg width="20" height="20" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                      </svg>
-                    )}
-                    {authLoading ? 'Menghubungkan ke Google...' : 'Lanjutkan dengan Google'}
+                  <button onClick={handleGoogleLogin} disabled={authLoading} className="w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all mb-3 disabled:opacity-60 ninja-btn-hover" style={{ background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.2)' }}>
+                    {authLoading ? <Clock className="animate-spin" size={18} /> : 'Lanjutkan dengan Google'}
                   </button>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,.08)' }} />
-                    <span className="text-[10px] text-gray-600 font-bold">atau</span>
-                    <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,.08)' }} />
-                  </div>
                   <button onClick={() => setShowAuthModal(false)} className="w-full py-3 rounded-xl text-[11px] font-bold transition-all ninja-menu-hover" style={{ color: 'rgba(255,255,255,.25)', border: '1px solid rgba(255,255,255,.07)' }}>👤 Lanjut sebagai Guest (checkout tanpa login)</button>
-                  <p className="text-[9px] text-gray-700 mt-5 leading-relaxed px-2">Login menggunakan akun Google Anda yang sudah ada.<br />Data aman & tidak dibagikan ke pihak ketiga.</p>
                 </div>
               )}
             </div>
@@ -857,128 +763,11 @@ export default function Home() {
         </div>
       )}
 
-      <nav className="fixed top-0 left-0 w-full z-[80] glass-nav">
-        <div className="py-1.5 px-4 text-center flex justify-center items-center gap-2" style={{ background: 'linear-gradient(90deg,#7f1d1d,#000000,#7f1d1d)', borderBottom: '1px solid rgba(239,68,68,.4)' }}>
-          <Flame size={14} className="text-red-500" style={{ filter: 'drop-shadow(0 0 6px #ef4444)', animation: 'fireFlicker .7s ease infinite' }} />
-          <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-red-100">FLASH SALE BERAKHIR DALAM:</span>
-          <span className="bg-black/80 px-2 py-0.5 rounded text-[10px] md:text-xs font-mono font-black text-red-400 border border-red-500/50" style={{ textShadow: '0 0 10px #ef4444' }}>{fmt(timeLeft)}</span>
-        </div>
-        <div className="px-4 md:px-6 py-3 flex justify-between items-center gap-3">
-          <div className="text-xl md:text-2xl font-black cursor-pointer tracking-tighter hover:scale-105 transition-transform flex-shrink-0 text-transparent bg-clip-text bg-gradient-to-r from-white to-red-300" onClick={() => window.location.reload()}>VinzSky<span className="text-red-500" style={{ textShadow: '0 0 10px rgba(239,68,68,.8)' }}>-shopID</span></div>
-          <div className="hidden md:flex flex-1 max-w-md rounded-full px-4 py-2 transition-all focus-within:border-red-500 focus-within:shadow-[0_0_15px_rgba(255,0,0,0.5)]" style={{ background: 'rgba(0,0,0,.7)', border: '1px solid rgba(255,255,255,.15)' }}>
-            <Search size={18} className="text-red-400 mr-2 flex-shrink-0" />
-            <input type="text" placeholder="Cari software VinzSky-shopID..." className="bg-transparent outline-none text-sm w-full text-white placeholder-gray-400" onChange={e => setSearchQuery(e.target.value)} />
-          </div>
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full visitor-pulse" style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.4)', boxShadow: '0 0 15px rgba(239,68,68,.3)' }}>
-            <Eye size={12} className="text-red-500" style={{ filter: 'drop-shadow(0 0 5px #ef4444)' }} />
-            <span className="text-[10px] font-black text-red-400">{visitorCount}</span>
-            <span className="text-[9px] text-red-300 uppercase font-bold tracking-widest">Online</span>
-          </div>
-          <div className="flex gap-2 md:gap-3 items-center flex-shrink-0">
-            <button onClick={() => setShowAuthModal(true)} className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full transition-all ninja-btn-hover"
-              style={authUser
-                ? { background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.5)' }
-                : { background: 'rgba(185,28,28,.2)', border: '1px solid rgba(220,38,38,.5)', color: '#fca5a5' }}>
-              {authUser ? <>
-                {authUser.user_metadata?.avatar_url
-                  ? <img src={authUser.user_metadata.avatar_url} className="w-6 h-6 rounded-full object-cover flex-shrink-0" style={{ border: '1.5px solid rgba(239,68,68,.8)' }} alt="av" />
-                  : <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0" style={{ background: 'linear-gradient(135deg,#991b1b,#000000)' }}>{(authUser.user_metadata?.full_name || authUser.email || 'U')[0].toUpperCase()}</div>
-                }
-                <div className="flex flex-col items-start leading-none ml-1">
-                  <span className="text-[10px] font-black truncate max-w-[80px]" style={{ color: '#fca5a5' }}>
-                    {isAdminUser(authUser) ? 'ADMIN' : authUser.user_metadata?.full_name?.split(' ')[0] || authUser.email?.split('@')[0]}
-                  </span>
-                  {userActiveTier && !isAdminUser(authUser) && (
-                    <span className="text-[8px] font-black uppercase tracking-widest mt-0.5" style={{ color: userActiveTier.color }}>
-                      {userActiveTier.tierName}
-                    </span>
-                  )}
-                </div>
-              </> : <><LogIn size={14} className="text-red-400" /><span className="text-[10px] font-black uppercase tracking-widest text-red-200">Login</span></>}
-            </button>
-            <div className="relative cursor-pointer transition-all ninja-menu-hover p-1 rounded-full" onClick={() => { setShowNotif(!showNotif); setUnreadCount(0) }}>
-              <Bell size={22} className={unreadCount > 0 ? 'animate-bounce text-red-500 ninja-icon' : 'ninja-icon text-gray-300'} />
-              {unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-white text-[9px] font-bold text-red-600 w-4 h-4 rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(255,255,255,0.8)]">{unreadCount}</span>}
-            </div>
-            <div className="relative cursor-pointer transition-all ninja-menu-hover p-1 rounded-full" onClick={() => cart.length ? setShowCheckout(true) : alert('Keranjang kosong!')}>
-              <ShoppingCart size={22} className={cart.length ? 'text-red-500 ninja-icon' : 'ninja-icon text-gray-300'} />
-              <span className={`absolute -top-1.5 -right-1.5 text-[10px] font-bold text-white w-4 h-4 rounded-full flex items-center justify-center border border-[#000] ${cart.length ? 'bg-red-600 shadow-[0_0_10px_rgba(239,68,68,0.8)]' : 'bg-gray-600'}`}>{cart.length}</span>
-            </div>
-            <div className="relative py-2">
-              <MoreVertical size={24} className={`cursor-pointer transition-all ${isMobileMenuOpen ? 'text-red-500' : 'text-gray-300'} ninja-menu-hover p-1 rounded-full`} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
-              {isMobileMenuOpen && <div className="fixed inset-0 z-[400]" onClick={() => setIsMobileMenuOpen(false)} />}
-              <div className={`absolute right-0 top-full mt-2 w-72 rounded-2xl overflow-hidden z-[500] transition-all shadow-[0_10px_60px_rgba(220,38,38,.4)] ${isMobileMenuOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'}`}
-                style={{ background: 'linear-gradient(135deg,rgba(15,0,0,.98),rgba(0,0,0,1))', backdropFilter: 'blur(32px)', border: '1px solid rgba(239,68,68,.3)' }}>
-                <div className="p-4" style={{ borderBottom: '1px solid rgba(239,68,68,.2)' }}>
-                  {authUser ? (
-                    <div className="flex items-center gap-3">
-                      <div className="relative flex-shrink-0">
-                        {authUser.user_metadata?.avatar_url
-                          ? <img src={authUser.user_metadata.avatar_url} className="w-11 h-11 rounded-full object-cover" style={{ border: '2px solid rgba(239,68,68,.8)' }} alt="av" />
-                          : <div className="w-11 h-11 rounded-full flex items-center justify-center text-base font-black" style={{ background: 'linear-gradient(135deg,#991b1b,#000000)', border: '2px solid rgba(239,68,68,.8)' }}>{(authUser.user_metadata?.full_name || authUser.email || 'U')[0].toUpperCase()}</div>
-                        }
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#000] bg-green-500 animate-pulse" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] text-white font-black truncate drop-shadow-md">{authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Member VinzSky-shopID'}</p>
-                        <p className="text-[10px] text-red-200 truncate mt-0.5">{authUser.email}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.4)' }}><UserCircle size={22} className="text-red-500" /></div>
-                      <div><p className="text-[12px] font-black text-red-400">Guest Mode</p><p className="text-[10px] mt-0.5 text-gray-400">Login untuk akses semua fitur</p></div>
-                    </div>
-                  )}
-                </div>
-                <div className="p-1.5">
-                  <button onClick={() => { setShowAuthModal(true); setIsMobileMenuOpen(false) }} className="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 font-bold text-gray-300 transition-all ninja-menu-hover">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)' }}><LogIn size={15} className="text-red-500 ninja-icon" /></div>
-                    <div><p className="text-[12px] font-black">{authUser ? 'Profil & Akun' : 'Login / Daftar'}</p><p className="text-[9px] text-gray-500">{authUser ? 'Lihat detail akun' : 'Masuk dengan Google'}</p></div>
-                  </button>
-
-                  <button onClick={() => { window.open('https://www.vinzsky.shop/download', '_blank'); setIsMobileMenuOpen(false) }} className="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 font-bold text-gray-300 transition-all ninja-menu-hover">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)' }}><Download size={15} className="text-red-500 ninja-icon" /></div>
-                    <div><p className="text-[12px] font-black">Download Software</p><p className="text-[9px] text-gray-500">Pusat unduhan tools</p></div>
-                  </button>
-
-                  {isAdminUser(authUser) && (
-                    <button onClick={() => { window.open('/admin', '_blank'); setIsMobileMenuOpen(false) }} className="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 font-bold transition-all ninja-menu-hover" style={{ background: 'rgba(239,68,68,.06)', margin: '2px 0' }}>
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,.2)', border: '1px solid rgba(239,68,68,.4)' }}>🛡️</div>
-                      <div className="flex-1"><p className="text-[12px] font-black text-red-400">Admin Portal</p><p className="text-[9px] text-red-300">Dashboard toko</p></div>
-                    </button>
-                  )}
-                  <button onClick={() => { setActiveMenu(null); setShowOrderStatus(true); setIsMobileMenuOpen(false) }} className="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 font-bold text-gray-300 transition-all ninja-menu-hover">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)' }}><Key size={15} className="text-red-500 ninja-icon" /></div>
-                    <div><p className="text-[12px] font-black">Data Lisensi HWID</p><p className="text-[9px] text-gray-500">Cek license key aktif</p></div>
-                  </button>
-                  <button onClick={() => { router.push('/tools-lifetime'); setIsMobileMenuOpen(false) }} className="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 font-bold text-gray-300 transition-all ninja-menu-hover">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)' }}><HardDrive size={15} className="text-red-500 ninja-icon" /></div>
-                    <div><p className="text-[12px] font-black">Tool-Lifetime</p><p className="text-[9px] text-gray-500">Riwayat link Google Drive</p></div>
-                  </button>
-                  <button onClick={() => { setShowOrderStatus(true); setIsMobileMenuOpen(false) }} className="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 font-bold text-gray-300 transition-all ninja-menu-hover">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)' }}><ShoppingCart size={15} className="text-red-500 ninja-icon" /></div>
-                    <div><p className="text-[12px] font-black">Status Pesanan</p><p className="text-[9px] text-gray-500">Cek progress pembelian</p></div>
-                  </button>
-                  {authUser && <>
-                    <div style={{ height: 1, background: 'rgba(239,68,68,.2)', margin: '6px 4px' }} />
-                    <button onClick={() => { handleLogout(); setIsMobileMenuOpen(false) }} className="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 font-bold transition-all ninja-menu-hover">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,.2)', border: '1px solid rgba(239,68,68,.4)' }}><LogOut size={15} className="text-red-500 ninja-icon" /></div>
-                      <div><p className="text-[12px] font-black text-red-400">Keluar Akun</p><p className="text-[9px] text-red-300">Sign out Google</p></div>
-                    </button>
-                  </>}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {showNotif && (
         <div className="fixed top-36 right-4 md:right-6 z-[9999] w-72 md:w-80 rounded-[2rem] overflow-hidden" style={{ background: 'linear-gradient(135deg,rgba(20,0,0,.98),rgba(0,0,0,1))', backdropFilter: 'blur(24px)', border: '1px solid rgba(239,68,68,.5)', boxShadow: '0 0 30px rgba(220,38,38,0.4)' }}>
           <div className="p-4 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(239,68,68,.3)', background: 'rgba(239,68,68,.1)' }}>
-            <span className="flex items-center gap-2 text-red-400 font-black text-[10px] uppercase tracking-widest drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]"><Bell size={12} />System Logs VinzSky</span>
-            <X size={14} className="cursor-pointer text-gray-400 hover:text-white ninja-menu-hover rounded-full p-1" onClick={() => setShowNotif(false)} />
+            <span className="flex items-center gap-2 text-red-400 font-black text-[10px] uppercase tracking-widest"><Bell size={12} />System Logs VinzSky</span>
+            <X size={14} className="cursor-pointer text-gray-400 hover:text-white" onClick={() => setShowNotif(false)} />
           </div>
           <div className="mscroll" style={{ maxHeight: '220px', padding: '1rem' }}>
             {notifications.length === 0 ? <p className="text-xs text-gray-500 text-center py-6 italic font-bold">No recent logs.</p> : notifications.map((n, i) => (
@@ -992,16 +781,16 @@ export default function Home() {
       )}
 
       <main className="relative z-10 max-w-6xl mx-auto p-4 md:p-6 pt-40 md:pt-36 min-h-screen">
-        <div className="reveal opacity-0 translate-y-20 mb-16 rounded-[2rem] overflow-hidden relative shadow-[0_0_50px_rgba(220,38,38,.4)]" style={{ height: '16rem', border: '1px solid rgba(239,68,68,.35)', background: 'rgba(10,0,20,0.2)', backdropFilter: 'blur(4px)' }}>
+        <div className="reveal opacity-0 translate-y-20 mb-16 rounded-[2rem] overflow-hidden relative shadow-[0_0_50px_rgba(220,38,38,.4)]" style={{ height: '16rem', border: '1px solid rgba(239,68,68,.35)', background: 'rgba(10,0,20,0.2)' }}>
           <Swiper modules={[Autoplay, EffectFade]} effect="fade" autoplay={{ delay: 3500, disableOnInteraction: false }} speed={1000} loop className="h-full w-full">
-            {[{ src: '/produk1.jpg', tag: 'UPDATE V2.0', tagC: 'bg-red-700 shadow-[0_0_15px_#b91c1c]', title: 'UPSCALE ', hi: 'VIDEO 4K', hiC: 'text-red-500' }, { src: '/produk2.jpg', tag: 'AI POWERED', tagC: 'bg-red-800 shadow-[0_0_15px_#991b1b]', title: 'ULTRA HIGH ', hi: 'PHOTO', hiC: 'text-red-600' }, { src: '/produk3.jpg', tag: 'ADOBE STOCK', tagC: 'bg-black border border-red-500 shadow-[0_0_15px_#ef4444]', title: 'TOOLS ', hi: 'PREMIUM', hiC: 'text-red-400' }].map((sl, i) => (
+            {[{ src: '/produk1.jpg', tag: 'UPDATE V2.0', tagC: 'bg-red-700', title: 'UPSCALE ', hi: 'VIDEO 4K', hiC: 'text-red-500' }, { src: '/produk2.jpg', tag: 'AI POWERED', tagC: 'bg-red-800', title: 'ULTRA HIGH ', hi: 'PHOTO', hiC: 'text-red-600' }].map((sl, i) => (
               <SwiperSlide key={i}>
                 <div className="relative w-full h-full bg-black/80 backdrop-blur-sm">
                   <img src={sl.src} onError={e => { e.target.onerror = null; e.target.src = '/produk1.jpg' }} className="w-full h-full object-cover opacity-40 mix-blend-luminosity" />
                   <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(15,0,0,1) 0%,rgba(15,0,0,.6) 60%,transparent 100%)' }} />
                   <div className="absolute bottom-10 left-10 z-20">
                     <span className={`${sl.tagC} text-white text-[10px] font-black px-4 py-1.5 rounded-full mb-3 inline-block tracking-widest uppercase`}>{sl.tag}</span>
-                    <h2 className="text-3xl md:text-5xl font-black italic tracking-tight text-white drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]">{sl.title}<span className={`${sl.hiC} drop-shadow-[0_0_20px_currentColor]`}>{sl.hi}</span></h2>
+                    <h2 className="text-3xl md:text-5xl font-black italic tracking-tight text-white">{sl.title}<span className={`${sl.hiC}`}>{sl.hi}</span></h2>
                   </div>
                 </div>
               </SwiperSlide>
@@ -1010,9 +799,9 @@ export default function Home() {
         </div>
 
         <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
-          <h2 className="text-2xl font-black flex items-center gap-3 italic text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]"><Star className="text-red-500 fill-red-500" style={{ filter: 'drop-shadow(0 0 10px #ef4444)' }} />Exclusive VinzSky-shopID</h2>
-          <div className="flex items-center gap-2 px-5 py-2.5 rounded-full" style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.4)', boxShadow: '0 0 20px rgba(220,38,38,.3)' }}>
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" style={{ boxShadow: '0 0 10px #ef4444' }} />
+          <h2 className="text-2xl font-black flex items-center gap-3 italic text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500"><Star className="text-red-500 fill-red-500" />Exclusive VinzSky-shopID</h2>
+          <div className="flex items-center gap-2 px-5 py-2.5 rounded-full" style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.4)' }}>
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
             <Eye size={14} className="text-red-500" />
             <span className="text-sm font-black text-red-500">{visitorCount}</span>
             <span className="text-[10px] text-red-300 font-black uppercase tracking-widest">Pengguna Aktif</span>
@@ -1020,9 +809,9 @@ export default function Home() {
         </div>
 
         {isLoadingDB ? (
-          <div className="w-full text-center py-20 flex flex-col items-center"><Clock className="text-red-600 animate-spin mb-4" size={48} /><p className="text-red-500 font-black animate-pulse tracking-widest drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">MENYIAPKAN BRANKAS VinzSky-shopID...</p></div>
+          <div className="w-full text-center py-20 flex flex-col items-center"><Clock className="text-red-600 animate-spin mb-4" size={48} /><p className="text-red-500 font-black animate-pulse tracking-widest">MENYIAPKAN BRANKAS VinzSky-shopID...</p></div>
         ) : dbError ? (
-          <div className="w-full rounded-3xl p-8 text-center mb-20" style={{ background: 'rgba(120,0,0,.40)', border: '1px solid rgba(220,38,38,.60)' }}><p className="text-red-400 font-black text-xl mb-2 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">GAGAL TERHUBUNG KE DATABASE!</p><p className="text-red-300 text-sm font-bold">{dbError}</p></div>
+          <div className="w-full rounded-3xl p-8 text-center mb-20" style={{ background: 'rgba(120,0,0,.40)', border: '1px solid rgba(220,38,38,.60)' }}><p className="text-red-400 font-black text-xl mb-2">GAGAL TERHUBUNG KE DATABASE!</p><p className="text-red-300 text-sm font-bold">{dbError}</p></div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 mb-20">
             {filtered.length === 0 ? <div className="w-full text-center py-20 col-span-full"><p className="text-red-500 italic font-bold">Belum ada produk.</p></div> : filtered.map(p => {
@@ -1031,38 +820,29 @@ export default function Home() {
                 <div key={p.id} className="reveal opacity-0 translate-y-20">
                   <div onClick={() => { 
                       setSelectedProduct(p); 
-                      // OTOMATIS UBAH LABEL DURASI JADI LIFETIME KALAU PRODUKNYA LIFETIME
                       setSelectedDuration(p.isLifetime ? { label: 'Akses Selamanya', code: 'LIFETIME', multiplier: 1, color: 'text-amber-500', bg: 'bg-amber-500/20', border: 'border-amber-500/50', tierName: 'Lifetime', diamondColor: '#f59e0b', diamondGlow: 'rgba(245,158,11,.7)', diamondBg: 'rgba(245,158,11,.15)' } : DURATIONS[3]); 
                       trackProductView(p.id);
-                  }} className="group relative rounded-[2.5rem] overflow-hidden cursor-pointer shadow-2xl flex flex-col h-full ninja-card-hover" style={{ background: 'linear-gradient(135deg, rgba(20,0,10,0.35), rgba(5,0,15,0.25))', backdropFilter: 'blur(20px) saturate(180%)', border: '1px solid rgba(239,68,68,.4)', boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+                  }} className="group relative rounded-[2.5rem] overflow-hidden cursor-pointer shadow-2xl flex flex-col h-full ninja-card-hover" style={{ background: 'linear-gradient(135deg, rgba(20,0,10,0.35), rgba(5,0,15,0.25))', backdropFilter: 'blur(20px)', border: '1px solid rgba(239,68,68,.4)' }}>
 
                     <div className="overflow-hidden relative bg-black" style={{ height: '14rem', borderBottom: '1px solid rgba(239,68,68,0.4)' }}>
-                      <div className="absolute inset-0 z-10 pointer-events-none" style={{ background: 'linear-gradient(to top,rgba(15,0,0,1) 0%,rgba(15,0,0,.2) 60%,transparent 100%)' }} />
                       {p.videoUrl && p.videoUrl !== '' && p.videoUrl !== '#'
-                        ? <video key={p.videoUrl} src={p.videoUrl} autoPlay loop muted playsInline preload="metadata" className="w-full h-full object-cover opacity-60 pointer-events-none transition-transform duration-700 group-hover:scale-110 mix-blend-luminosity group-hover:mix-blend-normal" style={{ willChange: 'transform', transform: 'translateZ(0)' }} onCanPlay={e => e.target.play().catch(() => { })} onError={e => { const parent = e.target.parentNode; const img = document.createElement('img'); img.src = p.image || '/produk1.jpg'; img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;opacity:.5;mix-blend-mode:luminosity;transition:all 0.7s;'; parent.appendChild(img); e.target.style.display = 'none'; }} />
+                        ? <video key={p.videoUrl} src={p.videoUrl} autoPlay loop muted playsInline preload="metadata" className="w-full h-full object-cover opacity-60 pointer-events-none transition-transform duration-700 group-hover:scale-110 mix-blend-luminosity group-hover:mix-blend-normal" />
                         : <img src={p.image} onError={e => { e.target.onerror = null; e.target.src = '/produk1.jpg' }} className="w-full h-full object-cover opacity-60 transition-all duration-700 group-hover:scale-110 mix-blend-luminosity group-hover:mix-blend-normal" />
                       }
-                      <span className="absolute top-4 right-4 z-20 text-[9px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest flex items-center gap-1.5" style={{ background: 'rgba(0,0,0,.80)', backdropFilter: 'blur(12px)', border: '1px solid rgba(239,68,68,.6)', color: '#fca5a5', boxShadow: '0 0 15px rgba(239,68,68,0.8)' }}><Crown size={12} />VIP Engine</span>
-                      {p.isFlashSale && <span className="absolute top-4 left-4 z-20 bg-red-700 text-white text-[9px] font-black px-3 py-1.5 rounded-full uppercase animate-pulse shadow-lg" style={{ boxShadow: '0 0 20px rgba(220,38,38,1)', border: '1px solid #f87171' }}>⚡ Flash Sale</span>}
-                      {pvc > 0 && <span className="absolute bottom-4 left-4 z-20 flex items-center gap-1 text-[9px] font-black px-3 py-1.5 rounded-full" style={{ background: 'rgba(0,0,0,.8)', backdropFilter: 'blur(12px)', border: '1px solid rgba(239,68,68,.4)' }}><Eye size={12} className="text-red-500" /><span className="text-red-400">{pvc} Views</span></span>}
+                      <span className="absolute top-4 right-4 z-20 text-[9px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest flex items-center gap-1.5" style={{ background: 'rgba(0,0,0,.80)', border: '1px solid rgba(239,68,68,.6)', color: '#fca5a5' }}><Crown size={12} />VIP Engine</span>
                     </div>
                     <div className="p-6 flex-1 flex flex-col justify-between z-10">
                       <div>
-                        <h3 className="text-xl font-black mb-3 text-transparent bg-clip-text bg-gradient-to-r from-red-200 to-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)] transition-all group-hover:from-white group-hover:to-red-400">{p.name}</h3>
+                        <h3 className="text-xl font-black mb-3 text-transparent bg-clip-text bg-gradient-to-r from-red-200 to-red-500">{p.name}</h3>
                         <div className="flex items-center gap-3 mb-2 flex-wrap">
                           <p className="font-black text-2xl fire-price text-red-500">Rp {fp.toLocaleString()}</p>
                           {(isVipMember || hasExitPromo || p.isFlashSale || (p.discountAktif && p.discountPersen > 0)) && <p className="text-xs text-red-900/80 font-bold line-through">Rp {(p.originalPrice || p.price).toLocaleString()}</p>}
                         </div>
-                        <div className="flex gap-2 mb-4 flex-wrap">
-                          {isVipMember && !hasExitPromo && <span className="text-[9px] px-2.5 py-1 rounded-full font-black flex items-center gap-1 shadow-inner" style={{ background: 'rgba(239,68,68,.2)', border: '1px solid rgba(239,68,68,.5)', color: '#fca5a5', textShadow: '0 0 5px #ef4444' }}><Crown size={10} />VIP -{p.discountVip || 5}%</span>}
-                          {hasExitPromo && <span className="text-[9px] px-2.5 py-1 rounded-full font-black shadow-inner" style={{ background: 'rgba(239,68,68,.2)', border: '1px solid rgba(239,68,68,.5)', color: '#fca5a5', textShadow: '0 0 5px #ef4444' }}>EXIT -{p.discountExit || 10}%</span>}
-                          {p.discountAktif && p.discountLabel && <span className="text-[9px] px-2.5 py-1 rounded-full font-black shadow-inner" style={{ background: 'rgba(220,38,38,.3)', border: '1px solid rgba(220,38,38,.6)', color: '#fff', textShadow: '0 0 8px #dc2626' }}>{p.discountLabel}</span>}
-                        </div>
                       </div>
-                      <div className="mt-4 p-4 rounded-2xl bg-black/60 border border-red-500/20 shadow-[inset_0_0_15px_rgba(239,68,68,0.1)]">
+                      <div className="mt-4 p-4 rounded-2xl bg-black/60 border border-red-500/20">
                         <div className="flex justify-between text-[10px] font-black mb-2 uppercase tracking-widest">
-                          <span className="flex items-center gap-1 text-red-500" style={{ textShadow: '0 0 8px rgba(239,68,68,0.8)' }}><Flame size={12} style={{ filter: 'drop-shadow(0 0 4px #ef4444)' }} />High Demand</span>
-                          <span className="text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]">SISA {p.stock} LISENSI</span>
+                          <span className="text-red-500">High Demand</span>
+                          <span className="text-white">SISA {p.stock} LISENSI</span>
                         </div>
                         <div className="w-full rounded-full h-2.5 overflow-hidden border border-red-900" style={{ background: 'rgba(0,0,0,1)' }}><div className="fire-bar h-full rounded-full" style={{ width: (p.stock || 50) + '%' }} /></div>
                       </div>
@@ -1079,47 +859,15 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {publicReviews.length === 0 ? <div className="w-full text-center py-10 col-span-full rounded-[2rem]" style={{ border: '1px dashed rgba(239,68,68,.4)' }}><p className="text-red-400 italic font-bold">Belum ada ulasan VinzSky-shopID.</p></div> : publicReviews.map((rev, i) => (
               <div key={i} className="reveal opacity-0 translate-y-20">
-                <div className="p-8 rounded-[2rem] h-full flex flex-col shadow-2xl ninja-card-hover" style={{ background: 'linear-gradient(135deg, rgba(15,0,10,0.30), rgba(5,0,15,0.20))', backdropFilter: 'blur(20px) saturate(200%)', border: '1px solid rgba(239,68,68,.35)', boxShadow: '0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
-                  
-                  {/* BINTANG RATING */}
-                  <div className="flex items-center gap-2 mb-4">{[...Array(5)].map((_, j) => <Star key={j} size={18} className={j < (rev.rating || 5) ? 'text-yellow-500 fill-yellow-500' : 'text-red-900'} style={j < (rev.rating || 5) ? { filter: 'drop-shadow(0 0 8px #eab308)' } : {}} />)}</div>
-                  
-                  {/* TEKS ULASAN */}
+                <div className="p-8 rounded-[2rem] h-full flex flex-col shadow-2xl ninja-card-hover" style={{ background: 'linear-gradient(135deg, rgba(15,0,10,0.30), rgba(5,0,15,0.20))', backdropFilter: 'blur(20px)', border: '1px solid rgba(239,68,68,.35)' }}>
+                  <div className="flex items-center gap-2 mb-4">{[...Array(5)].map((_, j) => <Star key={j} size={18} className={j < (rev.rating || 5) ? 'text-yellow-500 fill-yellow-500' : 'text-red-900'} />)}</div>
                   <p className="text-sm text-gray-200 italic mb-4 leading-relaxed font-bold">"{rev.review_text || rev.text || '...'}"</p>
-
-                  {rev.review_image_url && (
-                    <div className="w-full mt-4 mb-6 rounded-xl overflow-hidden border border-white/10 bg-black/50 p-2 flex items-center justify-center">
-                      <img src={rev.review_image_url} alt="Bukti Ulasan" className="w-full h-auto max-h-60 object-contain rounded-lg transition-transform hover:scale-105 duration-500" />
-                    </div>
-                  )}
-
                   <div className="flex justify-between items-end mt-auto pt-4 border-t border-red-500/20">
-                    <div className="flex items-center gap-3">
-                      {rev.buyer_avatar
-                        ? <img src={rev.buyer_avatar} alt="av" className="w-10 h-10 rounded-full object-cover flex-shrink-0" style={{ border: '2px solid rgba(239,68,68,.8)', boxShadow: '0 0 15px rgba(239,68,68,.5)' }} />
-                        : <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0" style={{ background: 'linear-gradient(135deg,#991b1b,#000000)', border: '2px solid rgba(239,68,68,.8)', boxShadow: '0 0 15px rgba(239,68,68,.5)' }}>
-                          {(rev.name || 'G')[0].toUpperCase()}
-                        </div>
-                      }
-                      <div>
-                        <p className="font-black text-sm text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">{rev.name || 'Member VinzSky-shopID'}</p>
-                        <p className="text-[10px] text-gray-400 font-bold mt-0.5 mb-1">{timeAgo(rev.created_at)}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          {(() => {
-                            const t = DURATIONS.find(d => d.code === (rev.tier_code || '7D')) || DURATIONS[1]; return (
-                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ background: t.diamondBg || 'rgba(239,68,68,.15)', border: `1px solid ${t.diamondColor || '#ef4444'}50` }}>
-                                <DiamondIcon color={t.diamondColor || '#ef4444'} glow={t.diamondGlow || 'rgba(239,68,68,.6)'} size={10} />
-                                <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: t.diamondColor || '#ef4444' }}>{t.tierName}</span>
-                              </div>
-                            )
-                          })()}
-                        </div>
-                      </div>
+                    <div>
+                      <p className="font-black text-sm text-white">{rev.name || 'Member VinzSky-shopID'}</p>
+                      <p className="text-[10px] text-gray-400 font-bold mt-0.5 mb-1">{timeAgo(rev.created_at)}</p>
                     </div>
-                    <div className="flex flex-col items-end">
-                      <CheckCircle size={20} className="text-green-500 flex-shrink-0 mb-1" style={{ filter: 'drop-shadow(0 0 8px #22c55e)' }} />
-                      <span className="text-[8px] text-green-400 font-bold uppercase tracking-widest">Verified</span>
-                    </div>
+                    <CheckCircle size={20} className="text-green-500 flex-shrink-0" />
                   </div>
                 </div>
               </div>
@@ -1129,56 +877,30 @@ export default function Home() {
       </main>
 
       <footer className="relative z-10 py-16 text-center mt-10" style={{ borderTop: '1px solid rgba(239,68,68,.3)', background: 'rgba(2,0,10,.50)', backdropFilter: 'blur(24px)' }}>
-        <p className="text-[11px] text-red-500/60 tracking-[6px] uppercase font-black hover:text-red-400 transition-colors cursor-default drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]">
-          Tools By | VinzSky-ShopID Software | software engineer | since 2026
-        </p>
-        <p className="text-[9px] text-red-700 mt-2 font-bold tracking-widest">LIMITED-EDITION</p>
+        <p className="text-[11px] text-red-500/60 tracking-[6px] uppercase font-black">Tools By | VinzSky-ShopID Software | software engineer | since 2026</p>
       </footer>
 
       {selectedProduct && (
         <div className="m-overlay">
-          <div className="m-box rounded-[3rem] shadow-[0_0_100px_rgba(220,38,38,.5)]" style={{ maxWidth: '1000px', background: 'rgba(15,0,0,.92)', backdropFilter: 'blur(32px) saturate(200%)', border: '1px solid rgba(239,68,68,.6)', display: 'flex', flexDirection: 'column' }}>
-            <div className="absolute inset-0 z-[-1] rounded-[3rem] bg-gradient-to-br from-red-900/40 via-black to-black pointer-events-none"></div>
+          <div className="m-box rounded-[3rem] shadow-[0_0_100px_rgba(220,38,38,.5)]" style={{ maxWidth: '1000px', background: 'rgba(15,0,0,.92)', border: '1px solid rgba(239,68,68,.6)' }}>
             <div className="flex flex-col md:flex-row flex-1 overflow-hidden rounded-[3rem]">
               <div className="media-panel-fill flex-shrink-0 md:w-[48%] relative" style={{ minHeight: '220px', maxHeight: typeof window !== 'undefined' && window.innerWidth >= 768 ? '90vh' : '280px', borderRight: '1px solid rgba(239,68,68,0.3)' }}>
                 {selectedProduct.videoUrl && selectedProduct.videoUrl !== '' && selectedProduct.videoUrl !== '#'
-                  ? <video key={selectedProduct.videoUrl} src={selectedProduct.videoUrl} controls autoPlay playsInline loop preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', background: '#000', transform: 'translateZ(0)' }} onLoadStart={e => { e.target.style.opacity = '.5' }} onCanPlay={e => { e.target.style.opacity = '1'; e.target.play().catch(() => { }) }} onError={e => { e.target.style.display = 'none'; const img = document.createElement('img'); img.src = selectedProduct.image || '/produk1.jpg'; img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;opacity:.7'; e.target.parentNode.appendChild(img) }} />
+                  ? <video key={selectedProduct.videoUrl} src={selectedProduct.videoUrl} controls autoPlay playsInline loop preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', background: '#000' }} />
                   : <img src={selectedProduct.image} onError={e => { e.target.onerror = null; e.target.src = '/produk1.jpg' }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: .85 }} />
                 }
-                {selectedProduct.videoUrl && selectedProduct.videoUrl !== '' && selectedProduct.videoUrl !== '#' && (
-                  <button onClick={() => setFullscreenVideo(selectedProduct.videoUrl)} className="absolute bottom-6 right-6 z-30 flex items-center gap-2 text-white font-black text-xs uppercase tracking-widest rounded-xl px-4 py-3 transition-all hover:scale-105 ninja-btn-hover" style={{ background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(16px)', border: '1px solid rgba(239,68,68,.5)', boxShadow: '0 0 20px rgba(239,68,68,.8)' }}>
-                    <Maximize2 size={16} />Full Screen
-                  </button>
-                )}
-                <div className="absolute inset-y-0 right-0 w-16 pointer-events-none hidden md:block" style={{ background: 'linear-gradient(to right,transparent,rgba(15,0,0,.95))' }} />
-                <div className="absolute inset-x-0 bottom-0 h-20 pointer-events-none md:hidden" style={{ background: 'linear-gradient(to top,rgba(15,0,0,1),transparent)' }} />
               </div>
               <div className="flex-1 mscroll p-6 md:p-10 flex flex-col relative" style={{ maxHeight: '90vh' }}>
-                <button onClick={handleCloseProduct} className="absolute top-6 right-6 rounded-full p-2.5 z-50 transition-colors shadow-xl ninja-btn-hover" style={{ background: 'rgba(239,68,68,.2)', border: '1px solid rgba(239,68,68,.5)' }}><X size={20} /></button>
-                <div className="flex items-center gap-3 mb-4 mt-2 md:mt-0 flex-wrap">
-                  <span className="text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-[0_0_10px_rgba(239,68,68,0.5)]" style={{ background: 'rgba(239,68,68,.25)', color: 'white', border: '1px solid rgba(239,68,68,.8)' }}>AI Exclusive VinzSky-shopID</span>
-                  <span className="flex items-center gap-1.5 text-[11px] font-black animate-pulse bg-red-900/40 px-3 py-1.5 rounded-full border border-red-500/60" style={{ color: '#fca5a5', textShadow: '0 0 8px rgba(248,113,113,.8)' }}><Users size={14} />{(viewCounts[selectedProduct.id] || 0) + Math.floor(Math.random() * 5) + 8} Orang melihat ini</span>
-                </div>
-                <h2 className="text-3xl md:text-4xl font-black mb-4 leading-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-red-300 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]">{selectedProduct.name}</h2>
-                <div className="mb-4 p-4 rounded-2xl" style={{ background: 'rgba(0,0,0,.7)', border: '1px solid rgba(239,68,68,.3)', boxShadow: 'inset 0 0 20px rgba(220,38,38,.2)' }}>
-                  <div className="flex justify-between text-[10px] font-black mb-2.5 uppercase tracking-widest">
-                    <span className="flex items-center gap-1 text-red-500" style={{ textShadow: '0 0 10px rgba(239,68,68,.9)' }}><Flame size={14} style={{ filter: 'drop-shadow(0 0 5px #ef4444)' }} />Sangat Diminati</span>
-                    <span className="text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]">SISA {selectedProduct.stock} LISENSI</span>
-                  </div>
-                  <div className="w-full rounded-full h-3 overflow-hidden border border-red-900" style={{ background: 'rgba(0,0,0,1)' }}><div className="fire-bar h-full rounded-full" style={{ width: (selectedProduct.stock || 99) + '%' }} /></div>
-                </div>
-                <div className="mb-6 p-5 rounded-2xl shadow-inner" style={{ background: 'rgba(239,68,68,.05)', border: '1px solid rgba(239,68,68,.2)' }}>
-                  <p className="text-[11px] font-black text-red-400 uppercase tracking-widest mb-2.5 drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]">Deskripsi Produk VinzSky-shopID</p>
-                  <p className="text-sm text-gray-200 leading-relaxed font-bold">{selectedProduct.desc}</p>
-                </div>
+                <button onClick={handleCloseProduct} className="absolute top-6 right-6 rounded-full p-2.5 z-50 transition-colors ninja-btn-hover" style={{ background: 'rgba(239,68,68,.2)', border: '1px solid rgba(239,68,68,.5)' }}><X size={20} /></button>
+                <h2 className="text-3xl md:text-4xl font-black mb-4 leading-tight text-white">{selectedProduct.name}</h2>
+                <p className="text-sm text-gray-200 leading-relaxed font-bold mb-6">{selectedProduct.desc}</p>
                 {selectedProduct.isLifetime ? (
-                  <div className="p-4 rounded-2xl text-center mb-5" style={{ background: 'rgba(245,158,11,.15)', border: '2px solid rgba(245,158,11,.5)' }}><p className="text-amber-500 font-black text-lg uppercase flex justify-center items-center gap-3 drop-shadow-[0_0_10px_rgba(245,158,11,0.6)]"><Crown size={24} style={{ filter: 'drop-shadow(0 0 8px #f59e0b)' }} />LISENSI LIFETIME UNLOCKED</p></div>
+                  <div className="p-4 rounded-2xl text-center mb-5" style={{ background: 'rgba(245,158,11,.15)', border: '2px solid rgba(245,158,11,.5)' }}><p className="text-amber-500 font-black text-lg uppercase flex justify-center items-center gap-3"><Crown size={24} />LISENSI LIFETIME UNLOCKED</p></div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     {DURATIONS.map(d => (
                       <button key={d.code} onClick={() => setSelectedDuration(d)} className={`p-4 rounded-2xl text-xs font-black transition-all flex flex-col items-center gap-2 ${selectedDuration.code === d.code ? 'scale-105 border-2' : 'border ninja-btn-hover'}`}
-                        style={selectedDuration.code === d.code ? { background: d.diamondBg, borderColor: d.diamondColor, boxShadow: `0 0 20px ${d.diamondGlow}`, color: d.diamondColor } : { background: 'rgba(0,0,0,.6)', borderColor: 'rgba(239,68,68,.2)', color: 'rgba(255,255,255,.5)' }}>
-                        <DiamondIcon color={selectedDuration.code === d.code ? d.diamondColor : 'rgba(255,255,255,.3)'} glow={selectedDuration.code === d.code ? d.diamondGlow : 'transparent'} size={24} animate={selectedDuration.code === d.code} />
+                        style={selectedDuration.code === d.code ? { background: d.diamondBg, borderColor: d.diamondColor, color: d.diamondColor } : { background: 'rgba(0,0,0,.6)', borderColor: 'rgba(239,68,68,.2)', color: 'rgba(255,255,255,.5)' }}>
                         <span className="font-black tracking-widest uppercase">{d.tierName}</span>
                         <span className="text-[10px] opacity-80 uppercase">{d.label}</span>
                       </button>
@@ -1186,19 +908,12 @@ export default function Home() {
                   </div>
                 )}
                 <div className="flex justify-between items-center mb-6 pt-5" style={{ borderTop: '1px solid rgba(239,68,68,.3)' }}>
-                  <span className="text-sm font-black text-gray-300 uppercase tracking-widest drop-shadow-md">Harga Final:</span>
-                  <div className="text-right">
-                    {(isVipMember || hasExitPromo || selectedProduct.isFlashSale || (selectedProduct.discountAktif && selectedProduct.discountPersen > 0)) && <p className="text-sm text-red-800 line-through mb-1 font-bold">Rp {(selectedProduct.originalPrice || selectedProduct.price).toLocaleString()}</p>}
-                    <span className={`text-3xl md:text-4xl font-black ${hasExitPromo ? 'text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-400 to-yellow-400 animate-pulse' : 'fire-price text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]'}`}>
-                      Rp {(calcPrice(selectedProduct.price, selectedProduct) * selectedDuration.multiplier).toLocaleString()}
-                    </span>
-                  </div>
+                  <span className="text-sm font-black text-gray-300 uppercase tracking-widest">Harga Final:</span>
+                  <span className="text-3xl md:text-4xl font-black text-red-500">Rp {(calcPrice(selectedProduct.price, selectedProduct) * selectedDuration.multiplier).toLocaleString()}</span>
                 </div>
                 <div className="flex gap-4 mt-auto">
-                  <button onClick={() => handleProductAction(selectedProduct, selectedDuration, 'cart')} disabled={isCheckingTrial} className="btn-cart disabled:opacity-50 py-4 text-sm tracking-widest ninja-btn-hover" style={{ background: 'linear-gradient(135deg,rgba(234,179,8,.3),rgba(239,68,68,.3))', border: '1px solid #f59e0b', color: '#fde68a' }}>
-                    {isCheckingTrial ? <Clock className="animate-spin" size={20} /> : <ShoppingCart size={20} />}<span className="font-black">Masuk Keranjang</span>
-                  </button>
-                  <button onClick={() => handleProductAction(selectedProduct, selectedDuration, 'buy')} disabled={isCheckingTrial} className="btn-buy disabled:opacity-50 py-4 text-sm tracking-widest uppercase ninja-btn-hover">{isCheckingTrial ? 'Memproses...' : 'Beli Sekarang'}</button>
+                  <button onClick={() => handleProductAction(selectedProduct, selectedDuration, 'cart')} disabled={isCheckingTrial} className="btn-cart py-4 text-sm tracking-widest ninja-btn-hover"><ShoppingCart size={20} /><span className="font-black">Masuk Keranjang</span></button>
+                  <button onClick={() => handleProductAction(selectedProduct, selectedDuration, 'buy')} disabled={isCheckingTrial} className="btn-buy py-4 text-sm tracking-widest uppercase ninja-btn-hover">Beli Sekarang</button>
                 </div>
               </div>
             </div>
@@ -1208,150 +923,67 @@ export default function Home() {
 
       {showCheckout && (
         <div className="m-overlay">
-          <div className="m-box w-full max-w-md rounded-[2.5rem]" style={{ background: 'rgba(15,0,0,.95)', backdropFilter: 'blur(32px) saturate(200%)', border: '1px solid rgba(239,68,68,.6)', boxShadow: '0 0 80px rgba(220,38,38,.4)' }}>
+          <div className="m-box w-full max-w-md rounded-[2.5rem]" style={{ background: 'rgba(15,0,0,.95)', border: '1px solid rgba(239,68,68,.6)' }}>
             <div className="flex justify-between items-center p-6 pb-5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(239,68,68,.3)' }}>
-              <h2 className="text-2xl font-black flex gap-3 items-center text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]"><ShieldCheck size={28} />Checkout VinzSky</h2>
-              <button onClick={handleCloseCheckout} className="rounded-full p-2.5 transition-colors shadow-lg ninja-btn-hover" style={{ background: 'rgba(239,68,68,.2)', border: '1px solid rgba(239,68,68,.5)' }}><X size={20} className="text-white" /></button>
+              <h2 className="text-2xl font-black flex gap-3 items-center text-red-500"><ShieldCheck size={28} />Checkout VinzSky</h2>
+              <button onClick={handleCloseCheckout} className="rounded-full p-2.5 transition-colors ninja-btn-hover" style={{ background: 'rgba(239,68,68,.2)' }}><X size={20} className="text-white" /></button>
             </div>
             <div className="mscroll p-6 pt-5" style={{ maxHeight: 'calc(92vh - 85px)' }}>
-              <p className="text-xs text-red-300 italic mb-5 text-center font-bold tracking-wide">"Langkah terakhir menuju produktivitas tanpa batas. Selesaikan sekarang Bosku!"</p>
-              {!authUser && (
-                <div className="mb-5 p-4 rounded-2xl flex items-center gap-4 cursor-pointer transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)] ninja-card-hover" onClick={() => setShowAuthModal(true)} style={{ background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.5)' }}>
-                  <LogIn size={24} className="text-red-500 flex-shrink-0 drop-shadow-md" />
-                  <div><p className="text-xs font-black text-red-300 uppercase tracking-wide">Login untuk checkout instan</p><p className="text-[10px] text-gray-400 mt-1">Email & nama otomatis terisi dari akun Google</p></div>
-                </div>
-              )}
-              <div className="p-5 rounded-3xl mb-5 shadow-[inset_0_0_20px_rgba(220,38,38,0.1)]" style={{ background: 'rgba(0,0,0,.6)', border: '1px solid rgba(239,68,68,.3)' }}>
+              <div className="p-5 rounded-3xl mb-5" style={{ background: 'rgba(0,0,0,.6)', border: '1px solid rgba(239,68,68,.3)' }}>
                 {cart.map((c, i) => (
-                  <div key={i} className="flex justify-between items-center mb-4 pb-4 rounded-xl transition-colors last:mb-0 last:pb-0 last:border-0" style={{ borderBottom: '1px solid rgba(239,68,68,.2)' }}>
+                  <div key={i} className="flex justify-between items-center mb-4 pb-4" style={{ borderBottom: '1px solid rgba(239,68,68,.2)' }}>
                     <div className="flex-1 pr-3"><p className="text-sm text-white font-black truncate">{c.name}</p><p className={`text-[10px] font-black uppercase tracking-widest ${c.color} ${c.bg} border ${c.border} inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mt-2`}><Crown size={10} />{c.tierName} - {c.durationLabel}</p></div>
-                    <div className="flex items-center gap-4"><p className="text-base font-black text-red-400 drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]">Rp {c.finalPrice.toLocaleString()}</p><button onClick={() => removeFromCart(i)} className="text-white transition-all p-1.5 bg-red-600 rounded-full ninja-btn-hover shadow-[0_0_10px_rgba(239,68,68,0.8)]"><X size={14} /></button></div>
+                    <div className="flex items-center gap-4"><p className="text-base font-black text-red-400">Rp {c.finalPrice.toLocaleString()}</p><button onClick={() => removeFromCart(i)} className="text-white p-1.5 bg-red-600 rounded-full"><X size={14} /></button></div>
                   </div>
                 ))}
-              </div>
-              <div className="flex justify-between items-center mb-6 p-5 rounded-2xl shadow-xl" style={{ background: 'linear-gradient(135deg,rgba(239,68,68,.2),rgba(0,0,0,.6))', border: '1px solid rgba(239,68,68,.5)' }}>
-                <span className="text-xs text-red-200 font-black uppercase tracking-widest">Total Tagihan</span>
-                <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-yellow-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">Rp {cart.reduce((s, i) => s + i.finalPrice, 0).toLocaleString('id-ID')}</span>
               </div>
               <div className="space-y-4 mb-6">
                 {[{ icon: <UserCircle size={18} />, ph: 'Nama Lengkap Anda', val: customerName, set: setCustomerName, type: 'text' }, { icon: <Phone size={18} />, ph: 'WhatsApp Aktif', val: customerWA, set: setCustomerWA, type: 'tel' }, { icon: <Mail size={18} />, ph: 'Email Aktif', val: customerEmail, set: setCustomerEmail, type: 'email' }].map((f, i) => (
-                  <div key={i} className="relative"><div className="absolute left-4 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none drop-shadow-md">{f.icon}</div><input placeholder={f.ph} value={f.val} onChange={e => f.set(e.target.value)} type={f.type} className="inp text-sm py-4 rounded-2xl border-red-500/30 bg-black/60 pl-12 text-white focus:border-red-500 focus:shadow-[0_0_15px_rgba(239,68,68,.5)] placeholder-gray-500" /></div>
+                  <div key={i} className="relative"><div className="absolute left-4 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none">{f.icon}</div><input placeholder={f.ph} value={f.val} onChange={e => f.set(e.target.value)} type={f.type} className="inp text-sm py-4 rounded-2xl border-red-500/30 bg-black/60 pl-12 text-white placeholder-gray-500" /></div>
                 ))}
               </div>
-              {cart.reduce((s, i) => s + i.finalPrice, 0) > 0 && (
-                <>
-                  <div className="grid grid-cols-2 gap-2 mb-5">
-                    {[{ key: 'midtrans', icon: <Landmark size={24} />, label: 'Otomatis' }, { key: 'manual', icon: <ShieldCheck size={24} />, label: 'Manual/DANA' }].map(pm => (
-                      <button key={pm.key} 
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); setPayMethod(pm.key); }} 
-                        className={`font-black py-4 px-2 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all text-[10px] uppercase tracking-widest shadow-lg ${payMethod === pm.key ? 'bg-red-700 text-white border-2 border-red-500 scale-[1.03] shadow-[0_0_20px_rgba(239,68,68,.8)]' : 'text-red-200 border border-red-500/30 bg-black/60 ninja-btn-hover'}`}>
-                          {pm.icon}{pm.label}
-                      </button>
-                    ))}
-                  </div>
-                  
-                  <div className="rounded-3xl p-6 mb-5 text-center shadow-inner" style={{ background: 'rgba(0,0,0,.6)', border: '1px solid rgba(239,68,68,.3)' }}>
-                    {payMethod === 'midtrans' && <div className="flex flex-col items-center"><ShieldCheck size={48} className="text-emerald-500 mb-4 drop-shadow-[0_0_15px_rgba(34,197,94,.8)]" /><p className="text-[11px] text-white mb-2 font-black uppercase tracking-widest drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]">Secure Auto-Payment</p><p className="text-sm text-gray-300 leading-relaxed font-bold">QRIS, Virtual Account, atau E-Wallet pilihan Anda.</p></div>}
-                    {payMethod === 'manual' && <div className="flex flex-col items-center"><ShieldCheck size={48} className="text-blue-400 mb-4" /><p className="text-[11px] text-white mb-2 font-black uppercase">Transfer Bank / DANA</p><p className="text-sm text-gray-300 font-bold text-center">0% Biaya Admin.<br/>Lanjut untuk upload bukti bayar.</p></div>}
-                  </div>
-                </>
-              )}
-              
-              <button 
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (cart.length === 0) return;
-                  if (payMethod === 'manual') {
-                    setShowCheckout(false); 
-                    setTimeout(() => setShowManualCheckout(true), 150); 
-                  } else {
-                    eksekusiPembayaran();
-                  }
-                }} 
-                disabled={isSending || cart.length === 0} 
-                className="w-full py-5 rounded-[1.5rem] font-black text-xl text-white transition-all disabled:opacity-50 flex items-center justify-center gap-3 hover:scale-[1.03] uppercase tracking-widest shadow-2xl ninja-btn-hover" style={{ background: 'linear-gradient(135deg,#991b1b,#ef4444)', boxShadow: '0 10px 30px rgba(239,68,68,.6)' }}
-              >
-                {isSending ? <Clock className="animate-spin" size={24} /> : <Send size={24} />}
-                {isSending ? 'Processing...' : (cart.reduce((s, i) => s + i.finalPrice, 0) === 0 ? 'KLAIM TRIAL GRATIS' : payMethod === 'manual' ? 'LANJUT TRANSFER MANUAL' : 'BAYAR OTOMATIS')}
+              <div className="grid grid-cols-2 gap-2 mb-5">
+                {[{ key: 'midtrans', icon: <Landmark size={24} />, label: 'Otomatis' }, { key: 'manual', icon: <ShieldCheck size={24} />, label: 'Manual/DANA' }].map(pm => (
+                  <button key={pm.key} type="button" onClick={() => setPayMethod(pm.key)} className={`font-black py-4 px-2 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all text-[10px] uppercase tracking-widest ${payMethod === pm.key ? 'bg-red-700 text-white border-2 border-red-500' : 'text-red-200 border border-red-500/30 bg-black/60'}`}>{pm.icon}{pm.label}</button>
+                ))}
+              </div>
+              <button type="button" onClick={() => { if (payMethod === 'manual') { setShowCheckout(false); setTimeout(() => setShowManualCheckout(true), 150); } else { eksekusiPembayaran(); } }} disabled={isSending || cart.length === 0} className="w-full py-5 rounded-[1.5rem] font-black text-xl text-white transition-all uppercase tracking-widest ninja-btn-hover" style={{ background: 'linear-gradient(135deg,#991b1b,#ef4444)' }}>
+                {isSending ? 'Processing...' : (payMethod === 'manual' ? 'LANJUT TRANSFER MANUAL' : 'BAYAR OTOMATIS')}
               </button>
-
-              <button type="button" onClick={clearCart} className="w-full mt-5 py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 text-white transition-all uppercase tracking-widest border border-red-600 ninja-btn-hover" style={{ background: 'rgba(220,38,38,0.2)' }}><Trash2 size={16} />Kosongkan Semua Keranjang</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* STRUK BARU SETELAH CHECKOUT */}
       {showReceipt && (
         <div className="m-overlay" style={{ zIndex: 99999 }}>
-          <div className="bg-white text-black p-8 rounded-lg relative shadow-[0_0_40px_rgba(255,255,255,0.2)] w-full max-w-sm font-mono flex flex-col items-center">
-            <div className="absolute -bottom-2 left-0 right-0 h-4 bg-repeat-x" style={{ backgroundImage: 'radial-gradient(circle, transparent 4px, white 4px)', backgroundSize: '16px 16px', backgroundPosition: '-8px 0' }}></div>
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 border-4 border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]"><CheckCircle size={32} className="text-green-600" /></div>
+          <div className="bg-white text-black p-8 rounded-lg relative w-full max-w-sm font-mono flex flex-col items-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 border-4 border-green-500"><CheckCircle size={32} className="text-green-600" /></div>
             <h2 className="text-2xl font-black mb-1 text-center">VINZSKY-SHOPID</h2>
             <p className="text-[10px] text-gray-500 text-center mb-4 border-b border-dashed border-gray-400 pb-4 w-full uppercase tracking-widest">Order Berhasil Diterima</p>
-            
             <div className="w-full text-xs space-y-2 mb-4 border-b border-dashed border-gray-400 pb-4">
               <div className="flex justify-between"><span className="font-bold">Order ID:</span><span>{showReceipt.id}</span></div>
               <div className="flex justify-between"><span className="font-bold">Tanggal:</span><span>{showReceipt.date}</span></div>
               <div className="flex justify-between"><span className="font-bold">Nama:</span><span>{showReceipt.customerName}</span></div>
             </div>
-            <div className="w-full flex justify-between items-center text-lg font-black mb-6">
-              <span>TOTAL</span><span className="text-green-600">Rp {Number(showReceipt.total).toLocaleString('id-ID')}</span>
-            </div>
-            <div className="flex gap-3 w-full">
-                <button onClick={async () => {
-                    try {
-                        if (typeof window !== 'undefined') {
-                            const { jsPDF } = await import("jspdf"); 
-                            const doc = new jsPDF();
-                            doc.setFontSize(22); doc.setTextColor(220, 38, 38); doc.text("VINZSKY", 20, 20); 
-                            doc.text(`TOTAL: Rp ${showReceipt.total}`, 20, 50); 
-                            doc.save(`Struk.pdf`);
-                        }
-                    } catch (e) { alert("PDF Error"); }
-                }} className="flex-1 bg-gray-200 text-gray-800 font-black py-3 rounded-lg flex items-center justify-center gap-2"><Download size={14}/> PDF</button>
-                <button onClick={() => {
-                  setShowReceipt(null);
-                  if (showReceipt.hwidItems && showReceipt.hwidItems.some(i => i.isLifetime || i.durationCode === 'LIFETIME')) {
-                    router.push('/tools-lifetime');
-                  } else {
-                    setShowOrderStatus(true);
-                  }
-                }} className="flex-[2] bg-red-600 text-white font-black py-3 rounded-lg text-sm">TUTUP STRUK</button>
-            </div>
-            <p className="text-[9px] text-gray-400 mt-4 text-center">
-              {showReceipt.hwidItems && showReceipt.hwidItems.some(i => i.isLifetime || i.durationCode === 'LIFETIME') 
-                ? <>Cek link Google Drive Anda di menu <b className="text-red-500">Tool-Lifetime</b>.</>
-                : <>Cek lisensi key dan beri ulasan di menu <b className="text-red-500">Status Pesanan</b>.</>}
-            </p>
+            <button onClick={() => { setShowReceipt(null); setShowOrderStatus(true); }} className="w-full bg-red-600 text-white font-black py-3 rounded-lg text-sm">TUTUP STRUK</button>
           </div>
         </div>
       )}
 
       {showExitPopup && (
         <div className="m-overlay" style={{ zIndex: 99998 }}>
-          <div className="m-box max-w-sm p-8 text-center rounded-[3rem] bg-[#0a0a0a] border border-red-500/50 shadow-[0_0_80px_rgba(220,38,38,0.5)]">
+          <div className="m-box max-w-sm p-8 text-center rounded-[3rem] bg-[#0a0a0a] border border-red-500/50">
             <button onClick={() => { setShowExitPopup(false); setSelectedProduct(null) }} className="absolute top-4 right-4 text-gray-500 hover:text-white"><X/></button>
-            <Percent size={48} className="mx-auto text-red-500 mb-4 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]" />
+            <Percent size={48} className="mx-auto text-red-500 mb-4" />
             <h2 className="text-2xl font-black text-white mb-2">TUNGGU BOSKU!</h2>
-            <p className="text-sm text-gray-300 mb-4">Yakin mau pergi? Ambil</p>
             <p className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-yellow-500 mb-6 animate-pulse">EKSTRA DISKON 10%</p>
-            <button onClick={() => { setHasExitPromo(true); setShowExitPopup(false); playPop() }} className="w-full bg-red-600 text-white font-black py-4 rounded-xl ninja-btn-hover mb-3">
-              KLAIM DISKON SEKARANG
-            </button>
-            <button onClick={() => { setShowExitPopup(false); setSelectedProduct(null) }} className="text-xs text-gray-500 font-bold hover:text-white transition-colors">
-              Nggak usah deh, biarin aja
-            </button>
+            <button onClick={() => { setHasExitPromo(true); setShowExitPopup(false); }} className="w-full bg-red-600 text-white font-black py-4 rounded-xl ninja-btn-hover mb-3">KLAIM DISKON SEKARANG</button>
           </div>
         </div>
       )}
 
-      {/* Ini file CheckoutManual yang udah full sinkron ke tabel baru */}
       <CheckoutManual isOpen={showManualCheckout} onClose={() => setShowManualCheckout(false)} cartItems={cart} totalAmount={cart.reduce((s,i)=>s+i.finalPrice,0)} onSuccess={handleManualSuccess} supabase={supabase} />
-      
-      {/* Ini pemanggilan OrderStatus yang fix error PDF-nya */}
       <OrderStatus isOpen={showOrderStatus} onClose={() => setShowOrderStatus(false)} userEmail={authUser?.email} supabase={supabase} />
     </div>
   )
